@@ -1,0 +1,5 @@
+cd /data/app/link-publisher/
+ps afx | grep link_publisher | awk '{print $1}' | xargs kill -9
+nohup php ./frontend/boot/link_publisher.php > /dev/null 2>&1 &
+exit
+

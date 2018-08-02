@@ -1,0 +1,29 @@
+{
+	"daemon":1,
+	"auto_load":0,
+	"log":{
+		"level":15,
+		"local":"/data/log/connd",
+		"rotate_size":"1G",
+		"rotate_interval":60,
+		"keep_files":5,
+	},
+
+	"register_zk":"zk://zk-ip:2182/regist-path?group=0",
+	"max_conns_per_worker":10000,
+	"wt_num":10,
+	"listen":[
+		"http://eth0:8081?heartbeat=0&service=http_gw&acc_num=1&idle_time=60",
+		],
+
+	"dep_service":[
+		 {"name":"echosrv", "hash":0, "type":"swoole","url":"tcp://10.0.2.15:1026"},
+		],
+
+	"appkey_im":"axd2#x3%x424^ghsVV&*2Hj",
+	"appkey_dynamic":"axd2#x3%x424^ghsVV&*2Hj",
+	"downgrade":{
+		"/app/service/method":10,
+		"/app/service/method":20,
+	}
+}

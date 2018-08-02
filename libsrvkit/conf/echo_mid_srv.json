@@ -1,0 +1,19 @@
+{
+	"daemon":1,
+	"log":{
+		"level":15,
+		"local":"./log",
+		"rotate_size":"1G",
+		"keep_files":5,
+		"monitor":"udp://127.0.0.1:2345"
+	},
+	"max_conns_per_worker":10000,
+	"wt_num":5,
+	"listen":[
+		"tcp://eth0:1025?heartbeat=1&service=mid_echo_srv",
+		],
+
+	"dep_service":[
+		 {"name":"echosrv", "hash":0, "type":"pb", "timeout":800, "url":"tcp://10.0.2.15:1026", "failure_in_10s":5, "half_open_ratio":10},
+		],
+}

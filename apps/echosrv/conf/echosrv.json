@@ -1,0 +1,16 @@
+{
+	"daemon":1,
+	"log":{
+		"level":15,
+		"local":"/data/log/echosrv",
+		"rotate_size":"1G",
+		"rotate_interval":60,
+		"keep_files":5
+	},
+	"register_zk":"zk://zk-ip:2182/regist-path?group=0",
+	"max_conns_per_worker":10000,
+	"wt_num":5,
+	"listen":[
+		"tcp://eth0:20002?service=echosrv&acc_num=1&idle_time=60"
+	]
+}

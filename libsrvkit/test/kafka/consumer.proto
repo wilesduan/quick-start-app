@@ -1,0 +1,11 @@
+package kafka_consumer;
+
+message test_msg
+{
+	required string msg = 1;
+};
+
+service  consumer
+{
+	int [kafka]test_consume(request test_msg req) = 1;
+};

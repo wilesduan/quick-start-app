@@ -1,0 +1,16 @@
+package kafka_producer;
+
+
+message req_produce
+{
+	required string msg = 1;
+};
+
+message rsp_produce
+{
+};
+
+service producer
+{
+	int produce(request req_produce req, response rsp_produce rsp) = 1;
+};

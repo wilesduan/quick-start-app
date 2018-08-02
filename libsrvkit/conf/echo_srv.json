@@ -1,0 +1,34 @@
+{
+	"daemon":1,
+	"log":{
+		"level":14,
+		"local":"./log",
+		"rotate_size":"1G",
+		//"rotate_interval":60,
+		"keep_files":5,
+	},
+	"max_conns_per_worker":10000,
+	"wt_num":10,
+	"listen":[
+		"tcp://eth0:1026?heartbeat=1&service=echosrv",
+		"http://eth0:8080?heartbeat=1&service=echosrv",
+		],
+
+	"dep_service":[
+		],
+	"mysql": {
+		"type": "shard",
+		"hosts": [
+		{
+			"id": "test",
+			"user": "root",
+			"passwd": "root",
+			"ip": "127.0.0.1",
+			"port": 3306,
+			"dbname": "test"
+		},
+		]
+	},
+	"redis_4_test":"tw://127.0.0.1:6379",
+	"redis":"tw://172.18.33.171:6379"
+}

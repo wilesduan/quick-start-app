@@ -1,0 +1,868 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ARGS	.\ArgumentsMacroHelpers.h	26;"	d
+ARG_DECL	.\ArgumentsMacroHelpers.h	39;"	d
+AfterMatchBuilder	.\AfterMatchBuilder.h	/^struct AfterMatchBuilder : public Builder$/;"	s
+AfterMatcher	.\AfterMatcher.h	/^struct AfterMatcher : public OrderingMatcher$/;"	s
+Any	.\types\Any.h	/^   Any(const ValueType& value)$/;"	f	struct:Any
+Any	.\types\Any.h	/^struct Any : public AnyBase$/;"	s
+AnyBase	.\types\AnyBase.h	/^struct AnyBase$/;"	s
+AnyCast	.\types\AnyCast.h	/^struct AnyCast$/;"	s
+AnyCast	.\types\AnyCast.h	/^struct AnyCast<ValueType, true>$/;"	s
+ApiHook	.\ApiHook.h	/^struct ApiHook$/;"	s
+ApiHookFunctor	.\ApiHookFunctor.h	/^struct ApiHookFunctor$/;"	s
+ApiHookGenerator	.\ApiHookGenerator.h	/^struct ApiHookGenerator$/;"	s
+ApiHookGenerator	.\ApiHookGenerator.h	/^struct ApiHookGenerator<F, 0>$/;"	s
+ApiHookHolder	.\ApiHookHolder.h	/^struct ApiHookHolder$/;"	s
+ApiHookHolderFactory	.\ApiHookHolderFactory.h	/^struct ApiHookHolderFactory$/;"	s
+ApiHookKey	.\ApiHookKey.h	/^struct ApiHookKey$/;"	s
+ArgumentsList	.\ArgumentsList.h	/^struct ArgumentsList {};$/;"	s
+ArgumentsListConst	.\ArgumentsList.h	/^struct ArgumentsListConst {};$/;"	s
+ArgumentsMatchBuilder	.\ArgumentsMatchBuilder.h	/^struct ArgumentsMatchBuilder : public Builder$/;"	s
+AssertionFailedError	.\AssertionFailedError.h	/^struct AssertionFailedError : public Exception$/;"	s
+BUILD_FOR_X64	.\mockcpp.h	48;"	d
+BUILD_FOR_X64	.\mockcpp.h	53;"	d
+BUILD_FOR_X86	.\mockcpp.h	49;"	d
+BUILD_FOR_X86	.\mockcpp.h	54;"	d
+BaseFunctor	.\Functor.h	/^   BaseFunctor(const std::string& fName, const char* cName)$/;"	f	struct:BaseFunctor
+BaseFunctor	.\Functor.h	/^struct BaseFunctor$/;"	s
+BeforeMatchBuilder	.\BeforeMatchBuilder.h	/^struct BeforeMatchBuilder : public Builder$/;"	s
+BeforeMatcher	.\BeforeMatcher.h	/^struct BeforeMatcher : public OrderingMatcher$/;"	s
+CallerMatchBuilder	.\CallerMatchBuilder.h	/^struct CallerMatchBuilder : public Builder$/;"	s
+CallerMatcher	.\CallerMatcher.h	/^struct CallerMatcher : public Matcher$/;"	s
+ChainableMockMethod	.\ChainableMockMethod.h	/^    ChainableMockMethod(Invokable* invokable)$/;"	f	struct:ChainableMockMethod
+ChainableMockMethod	.\ChainableMockMethod.h	/^struct ChainableMockMethod : public ChainableMockMethodBase<RT>$/;"	s
+ChainableMockMethod	.\ChainableMockMethod.h	/^struct ChainableMockMethod<void> : public ChainableMockMethodBase<void>$/;"	s
+ChainableMockMethodBase	.\ChainableMockMethod.h	/^    ChainableMockMethodBase(Invokable* invokable_)$/;"	f	struct:ChainableMockMethodBase
+ChainableMockMethodBase	.\ChainableMockMethod.h	/^struct ChainableMockMethodBase$/;"	s
+ChainableMockMethodContainer	.\ChainableMockMethodContainer.h	/^struct ChainableMockMethodContainer$/;"	s
+ChainableMockMethodCore	.\ChainableMockMethodCore.h	/^struct ChainableMockMethodCore$/;"	s
+ChainableMockMethodIndexKey	.\ChainableMockMethodIndexKey.h	/^struct ChainableMockMethodIndexKey$/;"	s
+ChainableMockMethodKey	.\ChainableMockMethodKey.h	/^struct ChainableMockMethodKey$/;"	s
+ChainableMockMethodNameKey	.\ChainableMockMethodNameKey.h	/^struct ChainableMockMethodNameKey$/;"	s
+ChainableMockObject	.\ChainableMockObject.h	/^struct ChainableMockObject $/;"	s
+ChainableMockObjectBase	.\ChainableMockObjectBase.h	/^struct ChainableMockObjectBase $/;"	s
+CheckWith	.\CheckWith.h	/^    CheckWith(Predict pred)$/;"	f	struct:CheckWith
+CheckWith	.\CheckWith.h	/^struct CheckWith : public Constraint$/;"	s
+CodeModifier	.\CodeModifier.h	/^struct CodeModifier$/;"	s
+ConstIterator	.\InvocationMockerSet.h	/^    typedef List::const_iterator ConstIterator;$/;"	t	struct:InvocationMockerSet
+Constraint	.\Constraint.h	/^struct Constraint$/;"	s
+ConstraintSet	.\ConstraintSet.h	/^struct ConstraintSet: public StatelessMatcher$/;"	s
+DECL_ARGS	.\ArgumentsMacroHelpers.h	47;"	d
+DECL_PARAMS	.\ArgumentsMacroHelpers.h	48;"	d
+DECL_PARAMS_LIST	.\ArgumentsMacroHelpers.h	49;"	d
+DECL_REST_ARGS	.\ArgumentsMacroHelpers.h	51;"	d
+DECL_REST_ARG_DECL	.\ArgumentsMacroHelpers.h	53;"	d
+DECL_REST_PARAMS	.\ArgumentsMacroHelpers.h	52;"	d
+DECL_TEMPLATE_ARGS	.\ArgumentsMacroHelpers.h	43;"	d
+DECL_VARDIC_ARGS	.\ArgumentsMacroHelpers.h	44;"	d
+DECL_VARDIC_PARAM_LIST	.\ArgumentsMacroHelpers.h	45;"	d
+DECL_VOID_TEMPLATE_ARGS	.\ArgumentsMacroHelpers.h	46;"	d
+DELEGATED_METHOD_GET	.\DelegatedMethodGetter.h	30;"	d
+DELEGATED_METHOD_GET_BY_VPTR	.\DelegatedMethodGetter.h	56;"	d
+DecoratedConstraint	.\DecoratedConstraint.h	/^struct DecoratedConstraint : public Constraint$/;"	s
+DefaultBuilder	.\DefaultBuilder.h	/^        > DefaultBuilder;$/;"	t
+DefaultMatcher	.\DefaultMatcher.h	/^struct DefaultMatcher : public Matcher$/;"	s
+DefaultStub	.\DefaultStub.h	/^struct DefaultStub : public Stub$/;"	s
+DelegatedMethodGetter	.\DelegatedMethodGetter.h	/^struct DelegatedMethodGetter$/;"	s
+DieStub	.\DieStub.h	/^struct DieStub : public TypelessStub$/;"	s
+DummyBuilder	.\DummyBuilder.h	/^struct DummyBuilder {};$/;"	s
+END_ARGS	.\ArgumentsMacroHelpers.h	25;"	d
+END_ARG_DECL	.\ArgumentsMacroHelpers.h	40;"	d
+END_MACRO_0	.\RepeatMacros.h	44;"	d
+END_MACRO_1	.\RepeatMacros.h	45;"	d
+END_MACRO_10	.\RepeatMacros.h	54;"	d
+END_MACRO_11	.\RepeatMacros.h	55;"	d
+END_MACRO_12	.\RepeatMacros.h	56;"	d
+END_MACRO_13	.\RepeatMacros.h	57;"	d
+END_MACRO_14	.\RepeatMacros.h	58;"	d
+END_MACRO_15	.\RepeatMacros.h	59;"	d
+END_MACRO_16	.\RepeatMacros.h	60;"	d
+END_MACRO_17	.\RepeatMacros.h	61;"	d
+END_MACRO_18	.\RepeatMacros.h	62;"	d
+END_MACRO_19	.\RepeatMacros.h	63;"	d
+END_MACRO_2	.\RepeatMacros.h	46;"	d
+END_MACRO_20	.\RepeatMacros.h	64;"	d
+END_MACRO_3	.\RepeatMacros.h	47;"	d
+END_MACRO_4	.\RepeatMacros.h	48;"	d
+END_MACRO_5	.\RepeatMacros.h	49;"	d
+END_MACRO_6	.\RepeatMacros.h	50;"	d
+END_MACRO_7	.\RepeatMacros.h	51;"	d
+END_MACRO_8	.\RepeatMacros.h	52;"	d
+END_MACRO_9	.\RepeatMacros.h	53;"	d
+END_PARAMS	.\ArgumentsMacroHelpers.h	30;"	d
+EmptyAny	.\types\Any.h	/^const Any EmptyAny;$/;"	v
+EmptyRefAny	.\types\RefAny.h	/^const RefAny EmptyRefAny;$/;"	v
+Exception	.\Exception.h	/^struct Exception$/;"	s
+ExpectsMatcher	.\ExpectsMatcher.h	/^struct ExpectsMatcher : public Matcher$/;"	s
+FUNCTOR_CONS	.\Functor.h	56;"	d
+FUNCTOR_DEF	.\Functor.h	62;"	d
+GlobalMockObject	.\GlobalMockObject.h	/^struct GlobalMockObject$/;"	s
+GnuMethodDescription	.\GnuMethodInfoReader.h	/^struct GnuMethodDescription$/;"	s
+Held	.\types\ValueHolder.h	/^       Held(const char  value) : sl(value) {}$/;"	f	union:SignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const int   value) : sl(value) {}$/;"	f	union:SignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const long  value) : sl(value) {}$/;"	f	union:SignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const short value) : sl(value) {}$/;"	f	union:SignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const unsigned char  value) : ul(value) {}$/;"	f	union:UnsignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const unsigned int   value) : ul(value) {}$/;"	f	union:UnsignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const unsigned long  value) : ul(value) {}$/;"	f	union:UnsignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^       Held(const unsigned short value) : ul(value) {}$/;"	f	union:UnsignedLongHolder::Held
+Held	.\types\ValueHolder.h	/^    union Held{$/;"	u	struct:SignedLongHolder
+Held	.\types\ValueHolder.h	/^    union Held{$/;"	u	struct:UnsignedLongHolder
+Holder	.\types\Holder.h	/^struct Holder : public PlaceHolder$/;"	s
+HookMockObject	.\HookMockObject.h	/^struct HookMockObject : public ChainableMockObjectBase$/;"	s
+IdentityBuilder	.\IdentityBuilder.h	/^struct IdentityBuilder$/;"	s
+Ignore	.\Ignore.h	/^struct Ignore$/;"	s
+IgnoreHandler	.\IgnoreHandler.h	/^struct IgnoreHandler : public ResultHandler$/;"	s
+IgnoreResultHandler	.\IgnoreResultHandler.h	/^struct IgnoreResultHandler : public ResultHandler$/;"	s
+IgnoreResultHandlerFactory	.\IgnoreResultHandlerFactory.h	/^struct IgnoreResultHandlerFactory$/;"	s
+IgnoreReturnStub	.\IgnoreReturnStub.h	/^struct IgnoreReturnStub : public TypelessStub$/;"	s
+IncrementStub	.\IncrementStub.h	/^    IncrementStub(T startValue)$/;"	f	struct:IncrementStub
+IncrementStub	.\IncrementStub.h	/^    IncrementStub(T startValue, T endValue)$/;"	f	struct:IncrementStub
+IncrementStub	.\IncrementStub.h	/^struct IncrementStub : public TypelessStub$/;"	s
+IndexInvokableGetter	.\IndexInvokableGetter.h	/^struct IndexInvokableGetter$/;"	s
+Invocation	.\Invocation.h	/^struct Invocation$/;"	s
+InvocationId	.\InvocationId.h	/^struct InvocationId$/;"	s
+InvocationMockBuilder	.\InvocationMockBuilder.h	/^struct InvocationMockBuilder : public Builder$/;"	s
+InvocationMockBuilderGetter	.\InvocationMockBuilderGetter.h	/^struct InvocationMockBuilderGetter$/;"	s
+InvocationMocker	.\InvocationMocker.h	/^struct InvocationMocker : public SelfDescribe$/;"	s
+InvocationMockerContainer	.\InvocationMockerContainer.h	/^struct InvocationMockerContainer$/;"	s
+InvocationMockerNamespace	.\InvocationMockerNamespace.h	/^struct InvocationMockerNamespace$/;"	s
+InvocationMockerSet	.\InvocationMockerSet.h	/^struct InvocationMockerSet$/;"	s
+InvocationTimesMatcher	.\InvocationTimesMatcher.h	/^struct InvocationTimesMatcher : public Matcher$/;"	s
+InvocationWithReturnType	.\InvocationWithReturnType.h	/^	InvocationWithReturnType($/;"	f	struct:InvocationWithReturnType
+InvocationWithReturnType	.\InvocationWithReturnType.h	/^struct InvocationWithReturnType : public Invocation$/;"	s
+Invokable	.\Invokable.h	/^struct Invokable$/;"	s
+InvokedAtLeast	.\InvokedAtLeast.h	/^struct InvokedAtLeast : public InvocationTimesMatcher$/;"	s
+InvokedAtMost	.\InvokedAtMost.h	/^struct InvokedAtMost$/;"	s
+InvokedExactly	.\InvokedExactly.h	/^struct InvokedExactly : public InvocationTimesMatcher$/;"	s
+InvokedOnce	.\InvokedOnce.h	/^struct InvokedOnce : public InvocationTimesMatcher$/;"	s
+InvokedTimesMatcher	.\InvokedTimesMatcher.h	/^struct InvokedTimesMatcher : public Matcher$/;"	s
+InvokedTimesReader	.\InvokedTimesReader.h	/^struct InvokedTimesReader$/;"	s
+InvokedTimesRecorder	.\InvokedTimesRecorder.h	/^struct InvokedTimesRecorder : public InvokedTimesReader$/;"	s
+IsAnything	.\IsAnything.h	/^struct IsAnything : public TypelessConstraint$/;"	s
+IsConst	.\IsConst.h	/^struct IsConst$/;"	s
+IsConst	.\IsConst.h	/^struct IsConst<const T&>$/;"	s
+IsConst	.\IsConst.h	/^struct IsConst<const T>$/;"	s
+IsEqual	.\IsEqual.h	/^    IsEqual(const T& expected)$/;"	f	struct:IsEqual
+IsEqual	.\IsEqual.h	/^struct IsEqual : public Constraint$/;"	s
+IsGreaterThan	.\IsGreaterThan.h	/^    IsGreaterThan(const T& expected)$/;"	f	struct:IsGreaterThan
+IsGreaterThan	.\IsGreaterThan.h	/^struct IsGreaterThan : public Constraint$/;"	s
+IsLessThan	.\IsLessThan.h	/^    IsLessThan(const T& expected)$/;"	f	struct:IsLessThan
+IsLessThan	.\IsLessThan.h	/^struct IsLessThan : public Constraint$/;"	s
+IsMirror	.\IsMirror.h	/^    IsMirror(void* p, size_t size)$/;"	f	struct:IsMirror
+IsMirror	.\IsMirror.h	/^   IsMirror(T* p, size_t size = 0)$/;"	f	struct:IsMirror
+IsMirror	.\IsMirror.h	/^   IsMirror(const T& obj)$/;"	f	struct:IsMirror
+IsMirror	.\IsMirror.h	/^struct IsMirror : public Constraint$/;"	s
+IsMirror	.\IsMirror.h	/^struct IsMirror<T*> : public IsMirrorBase<T*>$/;"	s
+IsMirror	.\IsMirror.h	/^struct IsMirror<void*> : public IsMirrorBase<void*>$/;"	s
+IsMirrorBase	.\IsMirror.h	/^    IsMirrorBase(T* p, size_t size)$/;"	f	struct:IsMirrorBase
+IsMirrorBase	.\IsMirror.h	/^struct IsMirrorBase$/;"	s
+IsMirrorBase	.\IsMirror.h	/^struct IsMirrorBase<T*>: public Constraint$/;"	s
+IsNotEqual	.\IsNotEqual.h	/^    IsNotEqual(const T& expected)$/;"	f	struct:IsNotEqual
+IsNotEqual	.\IsNotEqual.h	/^struct IsNotEqual : public Constraint$/;"	s
+IsRef	.\IsRef.h	/^struct IsRef$/;"	s
+IsRef	.\IsRef.h	/^struct IsRef<T&>$/;"	s
+IsRef	.\IsRef.h	/^struct IsRef<const T&>$/;"	s
+IsStringContains	.\IsStringContains.h	/^struct IsStringContains : public StringPredict$/;"	s
+IsStringEndWith	.\IsStringEndWith.h	/^struct IsStringEndWith : public StringPredict$/;"	s
+IsStringStartWith	.\IsStringStartWith.h	/^struct IsStringStartWith : public StringPredict$/;"	s
+Iterator	.\InvocationMockerSet.h	/^    typedef List::iterator Iterator;$/;"	t	struct:InvocationMockerSet
+JmpCode	.\JmpCode.h	/^struct JmpCode$/;"	s
+List	.\InvocationMockerSet.h	/^    typedef std::list<InvocationMocker*> List;$/;"	t	struct:InvocationMockerSet
+MCALL	.\mockable.h	27;"	d
+MCALL	.\mockable.h	30;"	d
+METHOD	.\MockObjectHelper.h	37;"	d
+MOCKABLE	.\mockable.h	25;"	d
+MOCKABLE	.\mockable.h	29;"	d
+MOCKCPP_API_HOOK_FUNCTOR_DEF	.\ApiHookFunctor.h	71;"	d
+MOCKCPP_API_HOOK_FUNCTOR_DEF	.\ApiHookFunctor.h	75;"	d
+MOCKCPP_ASSERT	.\types\AnyCast.h	30;"	d
+MOCKCPP_ASSERT_EQUALS	.\Asserter.h	53;"	d
+MOCKCPP_ASSERT_EQUALS_MESSAGE	.\Asserter.h	52;"	d
+MOCKCPP_ASSERT_FALSE	.\ReportFailure.h	36;"	d
+MOCKCPP_ASSERT_FALSE_MESSAGE	.\Asserter.h	55;"	d
+MOCKCPP_ASSERT_TRUE	.\ReportFailure.h	42;"	d
+MOCKCPP_ASSERT_TRUE_MESSAGE	.\Asserter.h	54;"	d
+MOCKCPP_CHECK_AND_ASSIGN_PARAMETER	.\ProcStub.h	58;"	d
+MOCKCPP_CONST_DELEGATED_METHOD_DEF	.\DelegatedMethod.h	54;"	d
+MOCKCPP_CONST_METHOD_TYPE_TRAITS_DEF	.\MethodTypeTraits.h	42;"	d
+MOCKCPP_DELEGATED_METHOD_DEF	.\DelegatedMethod.h	37;"	d
+MOCKCPP_EXPORT	.\mockcpp.h	36;"	d
+MOCKCPP_EXPORT	.\mockcpp.h	38;"	d
+MOCKCPP_FAIL	.\Asserter.h	56;"	d
+MOCKCPP_IS_CONST_H	.\IsConst.h	20;"	d
+MOCKCPP_IS_REF_H	.\IsRef.h	20;"	d
+MOCKCPP_METHOD_TYPE_TRAITS_DEF	.\MethodTypeTraits.h	32;"	d
+MOCKCPP_NS	.\mockcpp.h	24;"	d
+MOCKCPP_NS	.\mockcpp.h	29;"	d
+MOCKCPP_NS_END	.\mockcpp.h	26;"	d
+MOCKCPP_NS_END	.\mockcpp.h	31;"	d
+MOCKCPP_NS_START	.\mockcpp.h	25;"	d
+MOCKCPP_NS_START	.\mockcpp.h	30;"	d
+MOCKCPP_REPORT_FAILURE	.\ReportFailure.h	33;"	d
+MOCKER	.\mokc.h	28;"	d
+MOCKER	.\mokc.h	31;"	d
+MOCK_METHOD	.\MockObjectHelper.h	39;"	d
+Matcher	.\Matcher.h	/^struct Matcher$/;"	s
+Method	.\Method.h	/^struct Method$/;"	s
+MethodDescriptionUnion	.\GnuMethodInfoReader.h	/^union MethodDescriptionUnion$/;"	u
+MethodIndiceChecker	.\MethodIndiceChecker.h	/^struct MethodIndiceChecker$/;"	s
+MismatchResultHandler	.\MismatchResultHandler.h	/^struct MismatchResultHandler: public ResultHandler$/;"	s
+MismatchResultHandlerFactory	.\MismatchResultHandlerFactory.h	/^struct MismatchResultHandlerFactory$/;"	s
+MockBuilder	.\MockBuilder.h	/^         > MockBuilder;$/;"	t
+MockObject	.\MockObject.h	/^	MockObject()$/;"	f	struct:MockObject
+MockObject	.\MockObject.h	/^   MockObject(const MockObject& obj)$/;"	f	struct:MockObject
+MockObject	.\MockObject.h	/^struct MockObject : public MockObjectBase$/;"	s
+MockObjectBase	.\MockObjectBase.h	/^struct MockObjectBase : public ChainableMockObjectBase$/;"	s
+MockObjectTraits	.\MockObjectHelper.h	/^struct MockObjectTraits$/;"	s
+MockObjectType	.\GlobalMockObject.h	/^typedef ChainableMockObject MockObjectType;$/;"	t
+MockedInterface	.\MockObject.h	/^   typedef Interface MockedInterface;$/;"	t	struct:MockObject
+MoreStubBuilder	.\MoreStubBuilder.h	/^struct MoreStubBuilder : public Builder$/;"	s
+MsvcMethodUnion	.\MsvcMethodInfoReader.h	/^union MsvcMethodUnion$/;"	u
+MsvcVmgMFP	.\MsvcMethodInfoReader.h	/^struct MsvcVmgMFP$/;"	s
+NormalResultHandler	.\NormalResultHandler.h	/^struct NormalResultHandler : public ResultHandler$/;"	s
+NormalResultHandlerFactory	.\NormalResultHandlerFactory.h	/^struct NormalResultHandlerFactory$/;"	s
+ObjectNameGetter	.\ObjNameGetter.h	/^struct ObjectNameGetter$/;"	s
+OrderingMatcher	.\OrderingMatcher.h	/^struct OrderingMatcher : public Matcher$/;"	s
+OutBound	.\OutBound.h	/^    OutBound(const T& val, Constraint* constraint = 0)$/;"	f	struct:OutBound
+OutBound	.\OutBound.h	/^struct OutBound : public DecoratedConstraint$/;"	s
+OutBoundPointer	.\OutBoundPointer.h	/^   OutBoundPointer(T* p, size_t size = 0, Constraint* constraint = 0)$/;"	f	struct:OutBoundPointer
+OutBoundPointer	.\OutBoundPointer.h	/^struct OutBoundPointer $/;"	s
+OutBoundPointer	.\OutBoundPointer.h	/^struct OutBoundPointer<T*> : public OutBoundPointerBase<T*>$/;"	s
+OutBoundPointer	.\OutBoundPointer.h	/^struct OutBoundPointer<void*>: public OutBoundPointerBase<void*>$/;"	s
+OutBoundPointerBase	.\OutBoundPointer.h	/^    OutBoundPointerBase(T* p, size_t size, Constraint* constraint)$/;"	f	struct:OutBoundPointerBase
+OutBoundPointerBase	.\OutBoundPointer.h	/^struct OutBoundPointerBase$/;"	s
+OutBoundPointerBase	.\OutBoundPointer.h	/^struct OutBoundPointerBase<T*>: public DecoratedConstraint$/;"	s
+PARAMS	.\ArgumentsMacroHelpers.h	31;"	d
+PMD	.\MsvcRtti.h	/^struct PMD$/;"	s
+PROC	.\ProcStub.h	187;"	d
+PROC_STUB_CONS	.\ProcStub.h	64;"	d
+PROC_STUB_DEF	.\ProcStub.h	71;"	d
+ParaType	.\ChainingMockHelper.h	/^    typedef T ParaType;$/;"	t	struct:PredictTypeTraits
+ParameterizedApiHookHolder	.\ParameterizedApiHookHolder.h	/^   ParameterizedApiHookHolder(F* api) $/;"	f	struct:ParameterizedApiHookHolder
+ParameterizedApiHookHolder	.\ParameterizedApiHookHolder.h	/^struct ParameterizedApiHookHolder $/;"	s
+PendingMatcher	.\PendingMatcher.h	/^struct PendingMatcher : public Matcher$/;"	s
+PlaceHolder	.\types\PlaceHolder.h	/^struct PlaceHolder$/;"	s
+PredictTypeTraits	.\ChainingMockHelper.h	/^struct PredictTypeTraits$/;"	s
+PredictTypeTraits	.\ChainingMockHelper.h	/^struct PredictTypeTraits<bool (Predict::*)(T)>$/;"	s
+ProcStubBase	.\ProcStub.h	/^struct ProcStubBase : public Stub$/;"	s
+ProcessWith	.\ProcessWith.h	/^    ProcessWith(Proc proc)$/;"	f	struct:ProcessWith
+ProcessWith	.\ProcessWith.h	/^struct ProcessWith: public Constraint$/;"	s
+REPEAT	.\RepeatMacros.h	66;"	d
+REPEAT_0	.\RepeatMacros.h	22;"	d
+REPEAT_1	.\RepeatMacros.h	23;"	d
+REPEAT_10	.\RepeatMacros.h	32;"	d
+REPEAT_11	.\RepeatMacros.h	33;"	d
+REPEAT_12	.\RepeatMacros.h	34;"	d
+REPEAT_13	.\RepeatMacros.h	35;"	d
+REPEAT_14	.\RepeatMacros.h	36;"	d
+REPEAT_15	.\RepeatMacros.h	37;"	d
+REPEAT_16	.\RepeatMacros.h	38;"	d
+REPEAT_17	.\RepeatMacros.h	39;"	d
+REPEAT_18	.\RepeatMacros.h	40;"	d
+REPEAT_19	.\RepeatMacros.h	41;"	d
+REPEAT_2	.\RepeatMacros.h	24;"	d
+REPEAT_20	.\RepeatMacros.h	42;"	d
+REPEAT_3	.\RepeatMacros.h	25;"	d
+REPEAT_4	.\RepeatMacros.h	26;"	d
+REPEAT_5	.\RepeatMacros.h	27;"	d
+REPEAT_6	.\RepeatMacros.h	28;"	d
+REPEAT_7	.\RepeatMacros.h	29;"	d
+REPEAT_8	.\RepeatMacros.h	30;"	d
+REPEAT_9	.\RepeatMacros.h	31;"	d
+REST_ARGS	.\ArgumentsMacroHelpers.h	27;"	d
+REST_ARG_DECL	.\ArgumentsMacroHelpers.h	41;"	d
+REST_PARAMS	.\ArgumentsMacroHelpers.h	32;"	d
+RTTIBaseClassDescriptor	.\MsvcRtti.h	/^struct RTTIBaseClassDescriptor$/;"	s
+RTTIClassHierarchyDescriptor	.\MsvcRtti.h	/^    RTTIClassHierarchyDescriptor(bool mi = false)$/;"	f	struct:RTTIClassHierarchyDescriptor
+RTTIClassHierarchyDescriptor	.\MsvcRtti.h	/^struct RTTIClassHierarchyDescriptor$/;"	s
+RTTICompleteObjectLocator	.\MsvcRtti.h	/^    RTTICompleteObjectLocator(unsigned int index$/;"	f	struct:RTTICompleteObjectLocator
+RTTICompleteObjectLocator	.\MsvcRtti.h	/^struct RTTICompleteObjectLocator$/;"	s
+Raw	.\TypeTraits.h	/^    typedef T          Raw;$/;"	t	struct:TypeTraits
+Raw	.\TypeTraits.h	/^    typedef T         Raw;$/;"	t	struct:TypeTraits
+Raw	.\TypeTraits.h	/^    typedef T*         Raw;$/;"	t	struct:TypeTraits
+Raw	.\TypeTraits.h	/^    typedef void      Raw;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef T&         Ref;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef T&        Ref;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef const T&   Ref;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef const T&  Ref;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef const T*&  Ref;$/;"	t	struct:TypeTraits
+Ref	.\TypeTraits.h	/^    typedef void      Ref;$/;"	t	struct:TypeTraits
+RefAny	.\types\RefAny.h	/^   RefAny(const ValueType& value)$/;"	f	struct:RefAny
+RefAny	.\types\RefAny.h	/^struct RefAny : public AnyBase$/;"	s
+RefHolder	.\types\RefHolder.h	/^    RefHolder(const ValueType& value)$/;"	f	struct:RefHolder
+RefHolder	.\types\RefHolder.h	/^struct RefHolder : public Holder<ValueType>$/;"	s
+RefRaw	.\TypeTraits.h	/^    typedef T&         RefRaw;$/;"	t	struct:TypeTraits
+RefRaw	.\TypeTraits.h	/^    typedef T&        RefRaw;$/;"	t	struct:TypeTraits
+RefRaw	.\TypeTraits.h	/^    typedef T*&        RefRaw;$/;"	t	struct:TypeTraits
+RefRaw	.\TypeTraits.h	/^    typedef void      RefRaw;$/;"	t	struct:TypeTraits
+RefRawx	.\TypeTraits.h	/^    typedef T&        RefRawx;$/;"	t	struct:TypeTraits
+RepeatStub	.\RepeatStub.h	/^struct RepeatStub : public TypelessStub$/;"	s
+Result	.\Result.h	/^struct Result$/;"	s
+ResultHandler	.\ResultHandler.h	/^struct ResultHandler$/;"	s
+ResultHandlerFactory	.\ResultHandlerFactory.h	/^struct ResultHandlerFactory$/;"	s
+ReturnObjectList	.\ReturnObjectList.h	/^struct ReturnObjectList : public TypelessStub$/;"	s
+ReturnStub	.\ReturnStub.h	/^struct ReturnStub : public TypelessStub$/;"	s
+SIMPLE_REPEAT	.\RepeatMacros.h	67;"	d
+SelfDescribe	.\SelfDescribe.h	/^struct SelfDescribe$/;"	s
+SignedLongHolder	.\types\ValueHolder.h	/^    SignedLongHolder(const ValueType& value)$/;"	f	struct:SignedLongHolder
+SignedLongHolder	.\types\ValueHolder.h	/^struct SignedLongHolder : public ValueHolderBase<ValueType>$/;"	s
+SimpleInvocationRecorder	.\SimpleInvocationRecorder.h	/^struct SimpleInvocationRecorder$/;"	s
+Spy	.\Spy.h	/^    Spy(T& reference)$/;"	f	struct:Spy
+Spy	.\Spy.h	/^struct Spy : public Constraint$/;"	s
+StatelessMatcher	.\StatelessMatcher.h	/^struct StatelessMatcher : public Matcher$/;"	s
+StringConstraint	.\StringConstraint.h	/^struct StringConstraint: public Constraint$/;"	s
+StringPredict	.\StringPredict.h	/^struct StringPredict$/;"	s
+Stub	.\Stub.h	/^struct Stub : public SelfDescribe$/;"	s
+StubBuilder	.\StubBuilder.h	/^struct StubBuilder : public Builder$/;"	s
+StubContainer	.\StubContainer.h	/^struct StubContainer$/;"	s
+StubsBuilder	.\StubsBuilder.h	/^        > StubsBuilder;$/;"	t
+StubsMatcher	.\StubsMatcher.h	/^struct StubsMatcher : public Matcher$/;"	s
+TEMPLATE_ARG	.\ArgumentsMacroHelpers.h	34;"	d
+TEMPLATE_ARGS	.\ArgumentsMacroHelpers.h	35;"	d
+TYPE	.\MockObjectHelper.h	/^   typedef typename MockObjectClass::MockedInterface TYPE;$/;"	t	struct:MockObjectTraits
+TestFailureMatcher	.\TestFailureMatcher.h	/^struct TestFailureMatcher : public Matcher$/;"	s
+ThenStub	.\ThenStub.h	/^struct ThenStub : public Stub$/;"	s
+This	.\ApiHook.h	/^    ApiHookImpl* This;;$/;"	m	struct:ApiHook
+This	.\ChainableMockMethodContainer.h	/^    ChainableMockMethodContainerImpl* This;$/;"	m	struct:ChainableMockMethodContainer
+This	.\ChainableMockMethodCore.h	/^    ChainableMockMethodCoreImpl* This;$/;"	m	struct:ChainableMockMethodCore
+This	.\ChainableMockObject.h	/^    ChainableMockObjectImpl* This;$/;"	m	struct:ChainableMockObject
+This	.\ChainableMockObjectBase.h	/^    ChainableMockObjectBaseImpl* This;$/;"	m	struct:ChainableMockObjectBase
+This	.\ConstraintSet.h	/^    ConstraintSetImpl* This;$/;"	m	struct:ConstraintSet
+This	.\HookMockObject.h	/^    HookMockObjectImpl* This;	$/;"	m	struct:HookMockObject
+This	.\Invocation.h	/^    InvocationImpl* This;$/;"	m	struct:Invocation
+This	.\InvocationMocker.h	/^    InvocationMockerImpl* This;$/;"	m	struct:InvocationMocker
+This	.\JmpCode.h	/^	JmpCodeImpl* This;$/;"	m	struct:JmpCode
+This	.\MockObjectBase.h	/^   MockObjectBaseImpl* This;$/;"	m	struct:MockObjectBase
+This	.\ProcStub.h	/^    ProcStubBaseImpl* This;$/;"	m	struct:ProcStubBase
+This	.\Result.h	/^    ResultImpl* This; $/;"	m	struct:Result
+This	.\ReturnObjectList.h	/^    ReturnObjectListImpl* This;$/;"	m	struct:ReturnObjectList
+This	.\StubContainer.h	/^    StubContainerImpl* This;$/;"	m	struct:StubContainer
+This	.\TypelessConstraintAdapter.h	/^    TypelessConstraintAdapterImpl* This;$/;"	m	struct:TypelessConstraintAdapter
+This	.\VirtualTable.h	/^	VirtualTableImpl* This;$/;"	m	struct:VirtualTable
+ThrowExceptionStub	.\ThrowExceptionStub.h	/^    ThrowExceptionStub(T ex)$/;"	f	struct:ThrowExceptionStub
+ThrowExceptionStub	.\ThrowExceptionStub.h	/^struct ThrowExceptionStub : public TypelessStub$/;"	s
+Type	.\TypeTraits.h	/^    typedef T          Type;$/;"	t	struct:TypeTraits
+Type	.\TypeTraits.h	/^    typedef T         Type;$/;"	t	struct:TypeTraits
+Type	.\TypeTraits.h	/^    typedef const T*   Type;$/;"	t	struct:TypeTraits
+Type	.\TypeTraits.h	/^    typedef void      Type;$/;"	t	struct:TypeTraits
+Type	.\types\Holder.h	/^    typedef ValueType  Type;$/;"	t	struct:Holder
+TypeString	.\TypeString.h	/^struct TypeString<std::string>$/;"	s
+TypeString	.\TypeString.h	/^template <typename T> struct TypeString$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits<T&>$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits<const T&>$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits<const T*>$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits<const T>$/;"	s
+TypeTraits	.\TypeTraits.h	/^struct TypeTraits<void>$/;"	s
+TypelessConstraint	.\TypelessConstraint.h	/^struct TypelessConstraint$/;"	s
+TypelessConstraintAdapter	.\TypelessConstraintAdapter.h	/^struct TypelessConstraintAdapter : public Constraint$/;"	s
+TypelessStub	.\TypelessStub.h	/^struct TypelessStub$/;"	s
+TypelessStubAdapter	.\TypelessStubAdapter.h	/^struct TypelessStubAdapter : public Stub$/;"	s
+USING_MOCKCPP_NS	.\mockcpp.h	27;"	d
+USING_MOCKCPP_NS	.\mockcpp.h	32;"	d
+UnsignedLongHolder	.\types\ValueHolder.h	/^    UnsignedLongHolder(const ValueType& value)$/;"	f	struct:UnsignedLongHolder
+UnsignedLongHolder	.\types\ValueHolder.h	/^struct UnsignedLongHolder : public ValueHolderBase<ValueType>$/;"	s
+UselessType	.\ArgumentsList.h	/^struct UselessType {};$/;"	s
+VARDIC_FUNCTOR_DEF	.\Functor.h	91;"	d
+VARDIC_PROC_STUB_DEF	.\ProcStub.h	131;"	d
+VOID_TEMPLATE_ARGS	.\ArgumentsMacroHelpers.h	36;"	d
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(const ValueType& value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(const char& value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(const int& value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(const long& value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(const short& value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(unsigned char value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(unsigned int value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(unsigned long value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^    ValueHolder(unsigned short value)$/;"	f	struct:ValueHolder
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder : public ValueHolderBase<ValueType>$/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<char> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<int> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<long> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<short> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<unsigned char> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<unsigned int> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<unsigned long> $/;"	s
+ValueHolder	.\types\ValueHolder.h	/^struct ValueHolder<unsigned short> $/;"	s
+ValueHolderBase	.\types\ValueHolder.h	/^struct ValueHolderBase : public Holder<ValueType>$/;"	s
+VirtualTable	.\VirtualTable.h	/^struct VirtualTable$/;"	s
+Void	.\Void.h	/^struct Void {};$/;"	s
+VoidAny	.\types\Any.h	/^const Any VoidAny = Any(Void());$/;"	v
+VoidResultHandler	.\VoidResultHandler.h	/^struct VoidResultHandler: public ResultHandler$/;"	s
+VoidResultHandlerFactory	.\VoidResultHandlerFactory.h	/^struct VoidResultHandlerFactory$/;"	s
+WillStub	.\WillStub.h	/^struct WillStub : public Stub$/;"	s
+_	.\IsAnythingHelper.h	/^static const Constraint* _ = 0;$/;"	v
+__ARG	.\ArgumentsMacroHelpers.h	24;"	d
+__ARG_DECL	.\ArgumentsMacroHelpers.h	38;"	d
+__MOCKCPP_AFTER_MATCHER_H	.\AfterMatcher.h	20;"	d
+__MOCKCPP_AFTER_MATCH_BUILDER_H	.\AfterMatchBuilder.h	20;"	d
+__MOCKCPP_API_HOOK_FUNCTOR_DEF	.\ApiHookFunctor.h	17;"	d
+__MOCKCPP_API_HOOK_FUNCTOR_H__	.\ApiHookFunctor.h	3;"	d
+__MOCKCPP_API_HOOK_GENERATOR_H__	.\ApiHookGenerator.h	3;"	d
+__MOCKCPP_API_HOOK_HOLDER_FACTORY_H__	.\ApiHookHolderFactory.h	3;"	d
+__MOCKCPP_API_HOOK_HOLDER_H__	.\ApiHookHolder.h	3;"	d
+__MOCKCPP_API_HOOK_H__	.\ApiHook.h	3;"	d
+__MOCKCPP_API_HOOK_KEY_H__	.\ApiHookKey.h	20;"	d
+__MOCKCPP_API_HOOK_MOCKER_H__	.\ApiHookMocker.h	3;"	d
+__MOCKCPP_ARGUMENTS_LIST_H_	.\ArgumentsList.h	20;"	d
+__MOCKCPP_ARGUMENTS_MACRO_HELPERS_H	.\ArgumentsMacroHelpers.h	20;"	d
+__MOCKCPP_ARGUMENTS_MATCH_BUILDER_H	.\ArgumentsMatchBuilder.h	20;"	d
+__MOCKCPP_ASSERTER_H	.\Asserter.h	20;"	d
+__MOCKCPP_ASSERTION_FAILED_ERROR_H	.\AssertionFailedError.h	20;"	d
+__MOCKCPP_BEFORE_MATCHER_H	.\BeforeMatcher.h	20;"	d
+__MOCKCPP_BEFORE_MATCH_BUILDER_H	.\BeforeMatchBuilder.h	20;"	d
+__MOCKCPP_CALLER_MATCHER_H	.\CallerMatcher.h	20;"	d
+__MOCKCPP_CALLER_MATCH_BUILDER_H	.\CallerMatchBuilder.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_CONTAINER_H	.\ChainableMockMethodContainer.h	19;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_CORE_H	.\ChainableMockMethodCore.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_H	.\ChainableMockMethod.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_INDEX_KEY_H	.\ChainableMockMethodIndexKey.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_KEY_H	.\ChainableMockMethodKey.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_METHOD_NAME_KEY_H	.\ChainableMockMethodNameKey.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_OBJECT_BASE_H	.\ChainableMockObjectBase.h	20;"	d
+__MOCKCPP_CHAINABLE_MOCK_OBJECT_H_	.\ChainableMockObject.h	20;"	d
+__MOCKCPP_CHAINING_MOCK_HELPER_H	.\ChainingMockHelper.h	20;"	d
+__MOCKCPP_CHECK_WITH_H	.\CheckWith.h	20;"	d
+__MOCKCPP_CODEMODIFIER_H__	.\CodeModifier.h	21;"	d
+__MOCKCPP_CONSTRAINT_H	.\Constraint.h	20;"	d
+__MOCKCPP_CONSTRAINT_SET_H	.\ConstraintSet.h	20;"	d
+__MOCKCPP_DECORATED_CONSTRAINT_H	.\DecoratedConstraint.h	20;"	d
+__MOCKCPP_DEFAULT_BUIDLER_H_	.\DefaultBuilder.h	20;"	d
+__MOCKCPP_DEFAULT_MATCHER_H	.\DefaultMatcher.h	20;"	d
+__MOCKCPP_DEFAULT_STUB_H	.\DefaultStub.h	20;"	d
+__MOCKCPP_DELEGATED_METHOD_GETTER_H	.\DelegatedMethodGetter.h	20;"	d
+__MOCKCPP_DELEGATED_METHOD_H	.\DelegatedMethod.h	20;"	d
+__MOCKCPP_DESTRUCTOR_CHECKER_H	.\DestructorChecker.h	20;"	d
+__MOCKCPP_DIE_STUB_H	.\DieStub.h	20;"	d
+__MOCKCPP_DUMMY_BUILDER_H	.\DummyBuilder.h	20;"	d
+__MOCKCPP_EQUALITY_UTIL_H	.\EqualityUtil.h	20;"	d
+__MOCKCPP_EXCEPTION_H	.\Exception.h	20;"	d
+__MOCKCPP_EXPECTS_MATCHER_H	.\ExpectsMatcher.h	20;"	d
+__MOCKCPP_FORMATTER_H	.\Formatter.h	20;"	d
+__MOCKCPP_FUNCTOR_H	.\Functor.h	20;"	d
+__MOCKCPP_GLOBAL_MOCK_OBJECT_H	.\GlobalMockObject.h	20;"	d
+__MOCKCPP_GNU_METHOD_INDICES_CHECKER_H	.\GnuMethodIndicesChecker.h	19;"	d
+__MOCKCPP_GNU_METHOD_INFO_READER_H	.\GnuMethodInfoReader.h	19;"	d
+__MOCKCPP_H	.\mockcpp.h	20;"	d
+__MOCKCPP_HOOK_MOCK_OBJECT_H__	.\HookMockObject.h	20;"	d
+__MOCKCPP_HPP_	.\mockcpp.hpp	20;"	d
+__MOCKCPP_IDENTITY_BUILDER_H	.\IdentityBuilder.h	20;"	d
+__MOCKCPP_IGNORE_H	.\Ignore.h	20;"	d
+__MOCKCPP_IGNORE_RESULT_HANDLER_FACTORY_H	.\IgnoreResultHandlerFactory.h	20;"	d
+__MOCKCPP_IGNORE_RESULT_HANDLER_H	.\IgnoreResultHandler.h	20;"	d
+__MOCKCPP_IGNORE_RETURN_STUB_H	.\IgnoreReturnStub.h	20;"	d
+__MOCKCPP_INCREAMENT_STUB_H	.\IncrementStub.h	20;"	d
+__MOCKCPP_INDEX_INVOKABLE_GETTER_H	.\IndexInvokableGetter.h	20;"	d
+__MOCKCPP_INTERFACE_INFO_H_	.\InterfaceInfo.h	3;"	d
+__MOCKCPP_INVOCATION_H	.\Invocation.h	20;"	d
+__MOCKCPP_INVOCATION_ID_H	.\InvocationId.h	20;"	d
+__MOCKCPP_INVOCATION_MOCKER_H	.\InvocationMocker.h	20;"	d
+__MOCKCPP_INVOCATION_MOCKER_NAMESPACE_H	.\InvocationMockerNamespace.h	20;"	d
+__MOCKCPP_INVOCATION_MOCKER_SET_H	.\InvocationMockerSet.h	20;"	d
+__MOCKCPP_INVOCATION_MOCK_BUILDER_GETTER_H	.\InvocationMockBuilderGetter.h	20;"	d
+__MOCKCPP_INVOCATION_MOCK_BUILDER_H	.\InvocationMockBuilder.h	20;"	d
+__MOCKCPP_INVOCATION_TIMES_MATCHER_H	.\InvocationTimesMatcher.h	20;"	d
+__MOCKCPP_INVOCATION_WITH_RETURN_TYPE_H	.\InvocationWithReturnType.h	20;"	d
+__MOCKCPP_INVOKABLE_H	.\Invokable.h	20;"	d
+__MOCKCPP_INVOKED_ATLEAST_H	.\InvokedAtLeast.h	20;"	d
+__MOCKCPP_INVOKED_ATMOST_H	.\InvokedAtMost.h	20;"	d
+__MOCKCPP_INVOKED_EXACTLY_H	.\InvokedExactly.h	20;"	d
+__MOCKCPP_INVOKED_ONCE_H	.\InvokedOnce.h	20;"	d
+__MOCKCPP_INVOKED_TIMES_MATCHER_H	.\InvokedTimesMatcher.h	20;"	d
+__MOCKCPP_INVOKED_TIMES_READER_H	.\InvokedTimesReader.h	20;"	d
+__MOCKCPP_INVOKED_TIMES_RECORDER_H	.\InvokedTimesRecorder.h	20;"	d
+__MOCKCPP_IS_ANYTHING_H	.\IsAnything.h	20;"	d
+__MOCKCPP_IS_ANYTHING_HELPER_H	.\IsAnythingHelper.h	20;"	d
+__MOCKCPP_IS_EQUAL_H	.\IsEqual.h	20;"	d
+__MOCKCPP_IS_GREATER_THAN_H	.\IsGreaterThan.h	20;"	d
+__MOCKCPP_IS_LESS_THAN_H	.\IsLessThan.h	20;"	d
+__MOCKCPP_IS_MIRROR_H	.\IsMirror.h	20;"	d
+__MOCKCPP_IS_NOT_EQUAL_H	.\IsNotEqual.h	20;"	d
+__MOCKCPP_IS_STRING_CONTAINS_H	.\IsStringContains.h	20;"	d
+__MOCKCPP_IS_STRING_END_WITH_H	.\IsStringEndWith.h	20;"	d
+__MOCKCPP_IS_STRING_START_WITH_H	.\IsStringStartWith.h	20;"	d
+__MOCKCPP_JMP_CODE_H__	.\JmpCode.h	20;"	d
+__MOCKCPP_MATCHER_H	.\Matcher.h	20;"	d
+__MOCKCPP_METHOD_H	.\Method.h	20;"	d
+__MOCKCPP_METHOD_INDICE_CHECKER_H	.\MethodIndiceChecker.h	20;"	d
+__MOCKCPP_METHOD_INFO_READER_H	.\MethodInfoReader.h	19;"	d
+__MOCKCPP_METHOD_TYPE_TRAITS_H	.\MethodTypeTraits.h	20;"	d
+__MOCKCPP_MISMATCH_RESULT_HANDLER_FACTORY_H	.\MismatchResultHandlerFactory.h	20;"	d
+__MOCKCPP_MISMATCH_RESULT_HANDLER_H	.\MismatchResultHandler.h	20;"	d
+__MOCKCPP_MOCKABLE_H	.\mockable.h	20;"	d
+__MOCKCPP_MOCK_BUILDER_H	.\MockBuilder.h	20;"	d
+__MOCKCPP_MOCK_OBJECT_BASE_H	.\MockObjectBase.h	20;"	d
+__MOCKCPP_MOCK_OBJECT_H	.\MockObject.h	20;"	d
+__MOCKCPP_MOCK_OBJECT_HELPER_H__	.\MockObjectHelper.h	20;"	d
+__MOCKCPP_MOKC_H	.\mokc.h	20;"	d
+__MOCKCPP_MORE_STUB_BUILDER_H	.\MoreStubBuilder.h	20;"	d
+__MOCKCPP_MSVC_METHOD_INFO_READER_H	.\MsvcMethodInfoReader.h	19;"	d
+__MOCKCPP_MSVC_RTTI_H_	.\MsvcRtti.h	19;"	d
+__MOCKCPP_NORMAL_RESULT_HANDLER_FACTORY_H	.\NormalResultHandlerFactory.h	20;"	d
+__MOCKCPP_NORMAL_RESULT_HANDLER_H	.\NormalResultHandler.h	20;"	d
+__MOCKCPP_OBJ_NAME_GETTER_H	.\ObjNameGetter.h	20;"	d
+__MOCKCPP_ORDERING_MATCHER_H	.\OrderingMatcher.h	20;"	d
+__MOCKCPP_OUTBOUND_H	.\OutBound.h	20;"	d
+__MOCKCPP_OUTBOUND_POINTER_H	.\OutBoundPointer.h	20;"	d
+__MOCKCPP_OUTPUT_STRING_STREAM_H	.\OutputStringStream.h	19;"	d
+__MOCKCPP_PARAMETERIZED_API_HOOK_HOLDER_H__	.\ParameterizedApiHookHolder.h	3;"	d
+__MOCKCPP_PENDING_MATCHER_H	.\PendingMatcher.h	20;"	d
+__MOCKCPP_PROCESS_WITH_H	.\ProcessWith.h	20;"	d
+__MOCKCPP_PROC_STUB_H	.\ProcStub.h	20;"	d
+__MOCKCPP_REPEAT_MACROS_H	.\RepeatMacros.h	20;"	d
+__MOCKCPP_REPEAT_STUB_H	.\RepeatStub.h	20;"	d
+__MOCKCPP_REPORT_FAILURE_H	.\ReportFailure.h	20;"	d
+__MOCKCPP_RESULT_H	.\Result.h	20;"	d
+__MOCKCPP_RESULT_HANDLER_FACTORY_H	.\ResultHandlerFactory.h	20;"	d
+__MOCKCPP_RESULT_HANDLER_H	.\IgnoreHandler.h	20;"	d
+__MOCKCPP_RESULT_HANDLER_H	.\ResultHandler.h	20;"	d
+__MOCKCPP_RETURN_OBJECT_LIST_H	.\ReturnObjectList.h	20;"	d
+__MOCKCPP_RETURN_STUB_H	.\ReturnStub.h	20;"	d
+__MOCKCPP_SELF_DESCRIBE_H	.\SelfDescribe.h	20;"	d
+__MOCKCPP_SIMPLE_INVOCATION_RECORDER_H	.\SimpleInvocationRecorder.h	20;"	d
+__MOCKCPP_SPY_H	.\Spy.h	20;"	d
+__MOCKCPP_STATELESS_MATCHER_H	.\StatelessMatcher.h	20;"	d
+__MOCKCPP_STRING_CONSTRAINT_H	.\StringConstraint.h	20;"	d
+__MOCKCPP_STRING_PREDICT_H	.\StringPredict.h	20;"	d
+__MOCKCPP_STUBS_BUILDER_H	.\StubsBuilder.h	20;"	d
+__MOCKCPP_STUBS_MATCHER_H	.\StubsMatcher.h	20;"	d
+__MOCKCPP_STUB_BUILDER_H	.\StubBuilder.h	20;"	d
+__MOCKCPP_STUB_CONTAINER_H	.\StubContainer.h	20;"	d
+__MOCKCPP_STUB_H	.\Stub.h	20;"	d
+__MOCKCPP_TEST_FAILURE_MATCHER_H	.\TestFailureMatcher.h	20;"	d
+__MOCKCPP_THEN_STUB_H	.\ThenStub.h	20;"	d
+__MOCKCPP_THROW_EXCEPTION_STUB_H	.\ThrowExceptionStub.h	20;"	d
+__MOCKCPP_TYPELESS_CONSTRAINT_ADAPTER_H	.\TypelessConstraintAdapter.h	20;"	d
+__MOCKCPP_TYPELESS_CONSTRAINT_H	.\TypelessConstraint.h	20;"	d
+__MOCKCPP_TYPELESS_STUB_ADAPTER_H	.\TypelessStubAdapter.h	20;"	d
+__MOCKCPP_TYPELESS_STUB_H	.\TypelessStub.h	20;"	d
+__MOCKCPP_TYPE_STRING_H	.\TypeString.h	20;"	d
+__MOCKCPP_TYPE_TRAITS_H	.\TypeTraits.h	21;"	d
+__MOCKCPP_UTILS_H	.\utils.h	21;"	d
+__MOCKCPP_VIRTUAL_TABLE_H	.\VirtualTable.h	20;"	d
+__MOCKCPP_VIRTUAL_TABLE_UTILS_H	.\VirtualTableUtils.h	20;"	d
+__MOCKCPP_VOID_H	.\Void.h	20;"	d
+__MOCKCPP_VOID_RESULT_HANDLER_FACTORY_H	.\VoidResultHandlerFactory.h	20;"	d
+__MOCKCPP_VOID_RESULT_HANDLER_H	.\VoidResultHandler.h	20;"	d
+__MOCKCPP_WILL_STUB_H	.\WillStub.h	20;"	d
+__MOCKPP_ANY_BASE_H	.\types\AnyBase.h	20;"	d
+__MOCKPP_ANY_CAST_H	.\types\AnyCast.h	20;"	d
+__MOCKPP_ANY_H	.\types\Any.h	20;"	d
+__MOCKPP_HOLDER_H	.\types\Holder.h	20;"	d
+__MOCKPP_INVOCATION_MOCKER_CONTAINER_H	.\InvocationMockerContainer.h	20;"	d
+__MOCKPP_PLACEHOLDER_H	.\types\PlaceHolder.h	20;"	d
+__MOCKPP_REFHOLDER_H	.\types\RefHolder.h	20;"	d
+__MOCKPP_REF_ANY_H	.\types\RefAny.h	20;"	d
+__MOCKPP_VALUEHOLDER_H	.\types\ValueHolder.h	20;"	d
+__PARAM	.\ArgumentsMacroHelpers.h	29;"	d
+__RUN_NOTHROW	.\utils.h	40;"	d
+__RUN_THROW	.\utils.h	50;"	d
+__any_cast	.\types\AnyCast.h	/^ValueType* __any_cast(AnyBase* operand)$/;"	f
+addr	.\GnuMethodInfoReader.h	/^	  void* addr;$/;"	m	union:GnuMethodDescription::__anon1
+any_cast	.\types\AnyCast.h	/^ValueType any_cast(AnyBase& operand)$/;"	f
+any_cast	.\types\AnyCast.h	/^ValueType any_cast(const AnyBase& operand)$/;"	f
+any_cast	.\types\AnyCast.h	/^ValueType* any_cast(AnyBase* operand)$/;"	f
+any_cast	.\types\AnyCast.h	/^const ValueType * any_cast(const AnyBase* operand)$/;"	f
+any_castable	.\types\AnyCast.h	/^bool any_castable(const AnyBase& val)$/;"	f
+apiAddress	.\ApiHookKey.h	/^   const void* apiAddress;$/;"	m	struct:ApiHookKey
+appyApiHook	.\ApiHookGenerator.h	/^    static void* appyApiHook(F* api)$/;"	f	struct:ApiHookGenerator
+attributes	.\MsvcRtti.h	/^    unsigned int attributes;        \/\/flags, usually 0$/;"	m	struct:RTTIBaseClassDescriptor
+attributes	.\MsvcRtti.h	/^    unsigned int attributes;     \/\/bit 0 set = multiple inheritance, bit 1 set = virtual inheritance$/;"	m	struct:RTTIClassHierarchyDescriptor
+cast	.\types\AnyCast.h	/^   static ValueType* cast(AnyBase* operand)$/;"	f	struct:AnyCast
+cdOffset	.\MsvcRtti.h	/^    unsigned int cdOffset;  \/\/constructor displacement offset$/;"	m	struct:RTTICompleteObjectLocator
+changeValue	.\types\RefAny.h	/^   bool changeValue(const ValueType& val)$/;"	f	struct:RefAny
+changeValue	.\types\RefHolder.h	/^    void changeValue(const ValueType& val)$/;"	f	struct:RefHolder
+checkConst	.\OutBoundPointer.h	/^    void checkConst() const$/;"	f	struct:OutBoundPointerBase
+checkEnd	.\IncrementStub.h	/^   void checkEnd()$/;"	f	struct:IncrementStub
+checkWith	.\ChainingMockHelper.h	/^Constraint* checkWith(Predict pred)$/;"	f
+checkWith	.\ChainingMockHelper.h	/^Constraint* checkWith(bool (*pred)(T))$/;"	f
+clone	.\types\RefHolder.h	/^    PlaceHolder * clone() const$/;"	f	struct:RefHolder
+clone	.\types\ValueHolder.h	/^    PlaceHolder * clone() const$/;"	f	struct:ValueHolder
+code	.\DieStub.h	/^    int code;$/;"	m	struct:DieStub
+constraint	.\types\ValueHolder.h	/^Constraint* constraint(Constraint* c)$/;"	f	namespace:__anon2
+constraint	.\types\ValueHolder.h	/^Constraint* constraint(const Constraint* c)$/;"	f	namespace:__anon2
+constraint	.\types\ValueHolder.h	/^Constraint* constraint(const T& value)$/;"	f	namespace:__anon2
+constraint	.\types\ValueHolder.h	/^Constraint* constraint(const Void& v)$/;"	f	namespace:__anon2
+content	.\types\AnyBase.h	/^    PlaceHolder* content;$/;"	m	struct:AnyBase
+create	.\ApiHookHolderFactory.h	/^   static ApiHookHolder* create(F* api)$/;"	f	struct:ApiHookHolderFactory
+current	.\IncrementStub.h	/^    T current;$/;"	m	struct:IncrementStub
+decoratedConstraint	.\DecoratedConstraint.h	/^    Constraint* decoratedConstraint;$/;"	m	struct:DecoratedConstraint
+defaultStub	.\DefaultStub.h	/^    Stub* defaultStub;   $/;"	m	struct:DefaultStub
+delta	.\GnuMethodInfoReader.h	/^   int delta;$/;"	m	struct:GnuMethodDescription
+desc	.\GnuMethodInfoReader.h	/^    GnuMethodDescription desc;$/;"	m	union:MethodDescriptionUnion
+eq	.\ChainingMockHelper.h	/^Constraint* eq(const T& val)$/;"	f
+eval	.\CheckWith.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:CheckWith
+eval	.\IsAnything.h	/^    virtual bool eval(void) const$/;"	f	struct:IsAnything
+eval	.\IsEqual.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:IsEqual
+eval	.\IsGreaterThan.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:IsGreaterThan
+eval	.\IsLessThan.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:IsLessThan
+eval	.\IsMirror.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:IsMirrorBase
+eval	.\IsMirror.h	/^   bool eval(const RefAny& val) const$/;"	f	struct:IsMirror
+eval	.\IsNotEqual.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:IsNotEqual
+eval	.\ProcessWith.h	/^    bool eval(const RefAny& val) const$/;"	f	struct:ProcessWith
+eval	.\Spy.h	/^    bool eval(const RefAny& inv) const$/;"	f	struct:Spy
+evalSelf	.\OutBound.h	/^    bool evalSelf(const RefAny& val) const$/;"	f	struct:OutBound
+evalSelf	.\OutBoundPointer.h	/^    bool evalSelf(const RefAny& val) const$/;"	f	struct:OutBoundPointerBase
+excep	.\ThrowExceptionStub.h	/^    T excep;$/;"	m	struct:ThrowExceptionStub
+expectedInvokedTimes	.\InvokedExactly.h	/^    unsigned int expectedInvokedTimes;$/;"	m	struct:InvokedExactly
+expectedStub	.\ThenStub.h	/^    Stub* expectedStub; $/;"	m	struct:ThenStub
+expectedStub	.\WillStub.h	/^    Stub* expectedStub; $/;"	m	struct:WillStub
+expectedTypeInfo	.\MismatchResultHandler.h	/^    const std::type_info& expectedTypeInfo;$/;"	m	struct:MismatchResultHandler
+expectedTypeInfo	.\VoidResultHandler.h	/^    const std::type_info& expectedTypeInfo;$/;"	m	struct:VoidResultHandler
+expectedTypeString	.\MismatchResultHandler.h	/^    const std::string expectedTypeString;$/;"	m	struct:MismatchResultHandler
+expectedTypeString	.\VoidResultHandler.h	/^    const std::string expectedTypeString;$/;"	m	struct:VoidResultHandler
+expectedValue	.\IsEqual.h	/^    T expectedValue;$/;"	m	struct:IsEqual
+expectedValue	.\IsGreaterThan.h	/^    T expectedValue;$/;"	m	struct:IsGreaterThan
+expectedValue	.\IsLessThan.h	/^    T expectedValue;$/;"	m	struct:IsLessThan
+expectedValue	.\IsNotEqual.h	/^    T expectedValue;$/;"	m	struct:IsNotEqual
+findApiHook	.\ApiHookGenerator.h	/^    static void* findApiHook(F* api)$/;"	f	struct:ApiHookGenerator
+freeApiHook	.\ApiHookGenerator.h	/^    static bool freeApiHook(void* hook)$/;"	f	struct:ApiHookGenerator
+from	.\IncrementStub.h	/^    T from;$/;"	m	struct:IncrementStub
+get	.\DelegatedMethodGetter.h	/^	static void* get(unsigned int index)$/;"	f	struct:DelegatedMethodGetter
+getAddrOfDelegatedMethod	.\MockObject.h	/^   void* getAddrOfDelegatedMethod(Method m)$/;"	f	struct:MockObject
+getAddrOfMethod	.\GnuMethodInfoReader.h	/^void* getAddrOfMethod(Method input)$/;"	f
+getAddrOfMethod	.\MsvcMethodInfoReader.h	/^void* getAddrOfMethod(Method input)$/;"	f
+getApiHook	.\ParameterizedApiHookHolder.h	/^   void * getApiHook() const$/;"	f	struct:ParameterizedApiHookHolder
+getConstraint	.\types\Any.h	/^   Constraint* getConstraint() const$/;"	f	struct:Any
+getConstraint	.\types\PlaceHolder.h	/^    virtual Constraint* getConstraint() const { return 0; }$/;"	f	struct:PlaceHolder
+getConstraint	.\types\ValueHolder.h	/^    Constraint* getConstraint() const$/;"	f	struct:ValueHolderBase
+getDelegatedFunction	.\DelegatedMethodGetter.h	/^void* getDelegatedFunction(unsigned int vptrIndex, unsigned int vtblIndex, Method m)$/;"	f
+getDeltaOfMethod	.\GnuMethodInfoReader.h	/^unsigned int getDeltaOfMethod(Method method)$/;"	f
+getFileName	.\utils.h	/^inline std::string getFileName(std::string file)$/;"	f
+getGnuDescOfVirtualMethod	.\GnuMethodInfoReader.h	/^GnuMethodDescription getGnuDescOfVirtualMethod(Method input)$/;"	f
+getIgnore	.\Ignore.h	/^Any& getIgnore()$/;"	f
+getIndexOfDestructor	.\DestructorChecker.h	/^std::pair<unsigned int, unsigned int> getIndexOfDestructor()$/;"	f
+getIndexOfMethod	.\GnuMethodInfoReader.h	/^unsigned int getIndexOfMethod(Method method)$/;"	f
+getIndicesOfMethod	.\GenericMethodIndicesChecker.h	/^getIndicesOfMethod(Method m)$/;"	f
+getIndicesOfMethod	.\GnuMethodIndicesChecker.h	/^getIndicesOfMethod(Method m)$/;"	f
+getName	.\Functor.h	/^   std::string getName() const$/;"	f	struct:BaseFunctor
+getName	.\OutBound.h	/^    std::string getName() const$/;"	f	struct:OutBound
+getName	.\OutBoundPointer.h	/^    std::string getName() const$/;"	f	struct:OutBoundPointerBase
+getNameOfCaller	.\Functor.h	/^   std::string getNameOfCaller() const$/;"	f	struct:BaseFunctor
+getNumberOfVtbls	.\InterfaceInfo.h	/^unsigned int getNumberOfVtbls()$/;"	f
+getResult	.\ChainableMockMethod.h	/^    RT getResult(const Any& anyResult, SelfDescribe* resultProvider)$/;"	f	struct:ChainableMockMethod
+getResult	.\ChainableMockMethod.h	/^    void getResult(const Any& result, SelfDescribe*)$/;"	f	struct:ChainableMockMethod
+getResult	.\IgnoreHandler.h	/^    Any& getResult() const$/;"	f	struct:IgnoreHandler
+getTypeAndValueString	.\OutBound.h	/^    std::string getTypeAndValueString() const$/;"	f	struct:OutBound
+getTypeAndValueString	.\OutBoundPointer.h	/^    std::string getTypeAndValueString() const$/;"	f	struct:OutBoundPointerBase
+getValue	.\types\RefHolder.h	/^    const ValueType& getValue() const$/;"	f	struct:RefHolder
+getValue	.\types\ValueHolder.h	/^    const ValueType& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const char& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const int& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const long& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const short& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const unsigned char& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const unsigned int& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const unsigned long& getValue() const$/;"	f	struct:ValueHolder
+getValue	.\types\ValueHolder.h	/^    const unsigned short& getValue() const$/;"	f	struct:ValueHolder
+gt	.\ChainingMockHelper.h	/^Constraint* gt(const T& val)$/;"	f
+hasBeenInvoked	.\IgnoreReturnStub.h	/^    bool hasBeenInvoked;$/;"	m	struct:IgnoreReturnStub
+hasBeenInvoked	.\ReturnStub.h	/^    bool hasBeenInvoked;$/;"	m	struct:ReturnStub
+hasBeenInvoked	.\ThrowExceptionStub.h	/^    bool hasBeenInvoked;$/;"	m	struct:ThrowExceptionStub
+hasEnd	.\IncrementStub.h	/^    bool hasEnd;$/;"	m	struct:IncrementStub
+held	.\types\ValueHolder.h	/^    ValueType held;$/;"	m	struct:ValueHolder
+held	.\types\ValueHolder.h	/^    } held;$/;"	m	struct:SignedLongHolder	typeref:union:SignedLongHolder::Held
+held	.\types\ValueHolder.h	/^    } held;$/;"	m	struct:UnsignedLongHolder	typeref:union:UnsignedLongHolder::Held
+highLimit	.\InvokedAtMost.h	/^    unsigned int highLimit;$/;"	m	struct:InvokedAtMost
+hook	.\ApiHookKey.h	/^   ApiHook* hook;$/;"	m	struct:ApiHookKey
+hookHolder	.\ApiHookKey.h	/^   ApiHookHolder* hookHolder;$/;"	m	struct:ApiHookKey
+id	.\InvocationId.h	/^    std::string id;$/;"	m	struct:InvocationId
+id	.\PendingMatcher.h	/^   std::string id;$/;"	m	struct:PendingMatcher
+identifyDestructor	.\MockObject.h	/^   void identifyDestructor()$/;"	f	struct:MockObject
+ignore	.\Ignore.h	/^const Any ignore = Any(Ignore());$/;"	v
+increase	.\ChainingMockHelper.h	/^Stub* increase(const T& from)$/;"	f
+increase	.\ChainingMockHelper.h	/^Stub* increase(const T& from, const T& to)$/;"	f
+increaseInvoked	.\StatelessMatcher.h	/^    virtual void increaseInvoked(const Invocation& inv) {}$/;"	f	struct:StatelessMatcher
+index	.\ChainableMockMethodIndexKey.h	/^   unsigned int index;$/;"	m	struct:ChainableMockMethodIndexKey
+index	.\GnuMethodInfoReader.h	/^     int index;$/;"	m	union:GnuMethodDescription::__anon1
+instance	.\GlobalMockObject.h	/^   static MockObjectType instance;$/;"	m	struct:GlobalMockObject
+invocationMocker	.\InvocationMockBuilder.h	/^   InvocationMocker* invocationMocker;$/;"	m	struct:InvocationMockBuilder
+invocationMockerContainer	.\InvocationMockBuilderGetter.h	/^    InvocationMockerContainer* invocationMockerContainer;$/;"	m	struct:InvocationMockBuilderGetter
+invokable	.\ChainableMockMethod.h	/^    Invokable* invokable;$/;"	m	struct:ChainableMockMethodBase
+invoke	.\ChainableMockObject.h	/^    ChainableMockMethod<RT> invoke(const std::string& name) $/;"	f	struct:ChainableMockObject
+invoke	.\HookMockObject.h	/^    ChainableMockMethod<RT> invoke(const void* api) $/;"	f	struct:HookMockObject
+invoke	.\IncrementStub.h	/^    Any& invoke(void)$/;"	f	struct:IncrementStub
+invoke	.\ThrowExceptionStub.h	/^    Any& invoke(void)$/;"	f	struct:ThrowExceptionStub
+invokedTimes	.\SimpleInvocationRecorder.h	/^    unsigned int invokedTimes;$/;"	m	struct:SimpleInvocationRecorder
+invokedTimesReader	.\InvocationTimesMatcher.h	/^    InvokedTimesReader* invokedTimesReader;$/;"	m	struct:InvocationTimesMatcher
+invokedTimesRecorder	.\InvokedTimesMatcher.h	/^    InvokedTimesRecorder* invokedTimesRecorder;$/;"	m	struct:InvokedTimesMatcher
+isCastable	.\MismatchResultHandler.h	/^    const bool isCastable;$/;"	m	struct:MismatchResultHandler
+isCastable	.\NormalResultHandler.h	/^    const bool isCastable;$/;"	m	struct:NormalResultHandler
+isCompleted	.\IncrementStub.h	/^    bool isCompleted() const$/;"	f	struct:IncrementStub
+isCompleted	.\ThrowExceptionStub.h	/^    bool isCompleted() const$/;"	f	struct:ThrowExceptionStub
+isEqualComparison	.\EqualityUtil.h	/^bool isEqualComparison(const T &left, const T &right)$/;"	f
+isEqualComparison	.\EqualityUtil.h	/^bool isEqualComparison(const char* left, const char* right)$/;"	f
+isTrue	.\IsConst.h	/^	static const bool isTrue = false;$/;"	m	struct:IsConst
+isTrue	.\IsConst.h	/^	static const bool isTrue = true;$/;"	m	struct:IsConst
+isTrue	.\IsRef.h	/^	static const bool isTrue = false;$/;"	m	struct:IsRef
+isTrue	.\IsRef.h	/^	static const bool isTrue = true;$/;"	m	struct:IsRef
+lowLimit	.\InvokedAtLeast.h	/^    unsigned int lowLimit;$/;"	m	struct:InvokedAtLeast
+lt	.\ChainingMockHelper.h	/^Constraint* lt(const T& val)$/;"	f
+m_delta	.\MsvcMethodInfoReader.h	/^   int m_delta;$/;"	m	struct:MsvcVmgMFP
+m_func_address	.\MsvcMethodInfoReader.h	/^   void* m_func_address; $/;"	m	struct:MsvcVmgMFP
+m_hook	.\ParameterizedApiHookHolder.h	/^   void* m_hook;$/;"	m	struct:ParameterizedApiHookHolder
+m_vtable_index	.\MsvcMethodInfoReader.h	/^   int m_vtable_index; $/;"	m	struct:MsvcVmgMFP
+m_vtordisp	.\MsvcMethodInfoReader.h	/^   int m_vtordisp;$/;"	m	struct:MsvcVmgMFP
+matcher	.\ExpectsMatcher.h	/^    Matcher* matcher;$/;"	m	struct:ExpectsMatcher
+matcher	.\PendingMatcher.h	/^   mutable OrderingMatcher* matcher;$/;"	m	struct:PendingMatcher
+matches	.\IgnoreHandler.h	/^    bool matches(const Any& val) const$/;"	f	struct:IgnoreHandler
+matches	.\InvocationWithReturnType.h	/^	bool matches(Stub* stub) const$/;"	f	struct:InvocationWithReturnType
+maxSeq	.\ParameterizedApiHookHolder.h	/^   const static unsigned int maxSeq = 10;$/;"	m	struct:ParameterizedApiHookHolder
+mdisp	.\MsvcRtti.h	/^    int mdisp;  \/\/member displacement$/;"	m	struct:PMD
+message	.\Exception.h	/^   std::string message;$/;"	m	struct:Exception
+method	.\GnuMethodInfoReader.h	/^    Method method;$/;"	m	union:MethodDescriptionUnion
+method	.\InvocationMockBuilderGetter.h	/^    Method* method;$/;"	m	struct:InvocationMockBuilderGetter
+method	.\MockObject.h	/^   InvocationMockBuilderGetter method(Method m, const char* name = 0)$/;"	f	struct:MockObject
+method	.\MsvcMethodInfoReader.h	/^   Method method;$/;"	m	union:MsvcMethodUnion
+methodName	.\ChainableMockMethodNameKey.h	/^   std::string methodName;$/;"	m	struct:ChainableMockMethodNameKey
+mfp	.\MsvcMethodInfoReader.h	/^   MsvcVmgMFP mfp;$/;"	m	union:MsvcMethodUnion
+mightBeUsedAs	.\MockObject.h	/^   void mightBeUsedAs()$/;"	f	struct:MockObject
+mirror	.\ChainingMockHelper.h	/^Constraint* mirror(T* p, size_t size = 0)$/;"	f
+mirror	.\ChainingMockHelper.h	/^Constraint* mirror(const T& obj)$/;"	f
+mockAPI	.\ApiHookMocker.h	/^InvocationMockBuilderGetter mockAPI(const std::string& name, API* api)$/;"	f
+mocker	.\PendingMatcher.h	/^   InvocationMocker* mocker;$/;"	m	struct:PendingMatcher
+mockers	.\InvocationMockerSet.h	/^    List mockers;$/;"	m	struct:InvocationMockerSet
+msg	.\TestFailureMatcher.h	/^    std::string msg;$/;"	m	struct:TestFailureMatcher
+name	.\Functor.h	/^   std::string name;$/;"	m	struct:BaseFunctor
+nameOfCaller	.\CallerMatcher.h	/^	std::string nameOfCaller;$/;"	m	struct:CallerMatcher
+nameOfCaller	.\Functor.h	/^   std::string nameOfCaller;$/;"	m	struct:BaseFunctor
+neq	.\ChainingMockHelper.h	/^Constraint* neq(const T& val)$/;"	f
+numBaseClasses	.\MsvcRtti.h	/^    unsigned int numBaseClasses; \/\/number of classes in pBaseClassArray$/;"	m	struct:RTTIClassHierarchyDescriptor
+numContainedBases	.\MsvcRtti.h	/^    unsigned int numContainedBases; \/\/number of nested classes following in the Base Class Array$/;"	m	struct:RTTIBaseClassDescriptor
+object	.\IsMirror.h	/^   T object;$/;"	m	struct:IsMirror
+offset	.\MsvcRtti.h	/^    unsigned int offset;    \/\/offset of this vtable in the complete class$/;"	m	struct:RTTICompleteObjectLocator
+operator ()	.\ChainableMockMethod.h	/^    RT operator()( const std::string& nameOfCaller$/;"	f	struct:ChainableMockMethodBase
+operator ->	.\MockObject.h	/^   Interface* operator->()$/;"	f	struct:MockObject
+operator =	.\types\Any.h	/^   Any& operator=(const ValueType & rhs)$/;"	f	struct:Any
+operator =	.\types\RefAny.h	/^   RefAny& operator=(const ValueType & rhs)$/;"	f	struct:RefAny
+operator ==	.\Ignore.h	/^   bool operator==(const Ignore& rhs) const$/;"	f	struct:Ignore
+operator Interface*	.\MockObject.h	/^   operator Interface* ()$/;"	f	struct:MockObject
+oss_t	.\OutputStringStream.h	/^typedef std::ostringstream oss_t;$/;"	t
+outBound	.\ChainingMockHelper.h	/^Constraint* outBound(const T& val, Constraint* constraint = 0)$/;"	f
+outBoundP	.\ChainingMockHelper.h	/^Constraint* outBoundP(T* p, Constraint* constraint = 0)$/;"	f
+outBoundP	.\ChainingMockHelper.h	/^Constraint* outBoundP(T* p, size_t size, Constraint* constraint = 0)$/;"	f
+outBoundable	.\IsRef.h	/^	static const bool outBoundable = false;$/;"	m	struct:IsRef
+outBoundable	.\IsRef.h	/^	static const bool outBoundable = true;$/;"	m	struct:IsRef
+pBaseClassArray	.\MsvcRtti.h	/^    RTTIBaseClassDescriptor** pBaseClassArray;$/;"	m	struct:RTTIClassHierarchyDescriptor
+pClassDescriptor	.\MsvcRtti.h	/^    RTTIClassHierarchyDescriptor* pClassDescriptor; \/\/describes inheritance hierarchy$/;"	m	struct:RTTICompleteObjectLocator
+pdisp	.\MsvcRtti.h	/^    int pdisp;  \/\/vbtable displacement$/;"	m	struct:PMD
+pointer	.\IsMirror.h	/^    T* pointer;$/;"	m	struct:IsMirrorBase
+pointer	.\OutBoundPointer.h	/^    T* pointer;$/;"	m	struct:OutBoundPointerBase
+predict	.\CheckWith.h	/^    mutable Predict predict;$/;"	m	struct:CheckWith
+predict	.\StringConstraint.h	/^   StringPredict* predict;$/;"	m	struct:StringConstraint
+previousCall	.\AfterMatcher.h	/^   InvocationMocker* previousCall;$/;"	m	struct:AfterMatcher
+previousCall	.\BeforeMatcher.h	/^   InvocationMocker* previousCall;$/;"	m	struct:BeforeMatcher
+proc	.\ProcessWith.h	/^    mutable Proc proc;$/;"	m	struct:ProcessWith
+processWith	.\ChainingMockHelper.h	/^Constraint* processWith(Proc proc)$/;"	f
+processWith	.\ChainingMockHelper.h	/^Constraint* processWith(void (*proc)(T))$/;"	f
+ref	.\OutBound.h	/^    T ref;$/;"	m	struct:OutBound
+ref	.\Spy.h	/^    T& ref;$/;"	m	struct:Spy
+ref	.\types\RefHolder.h	/^    const ValueType& ref;$/;"	m	struct:RefHolder
+repeatTimes	.\RepeatStub.h	/^    const unsigned int repeatTimes;$/;"	m	struct:RepeatStub
+repeatedTimes	.\RepeatStub.h	/^    unsigned int repeatedTimes;$/;"	m	struct:RepeatStub
+reset	.\MockObject.h	/^   void reset()$/;"	f	struct:MockObject
+resultProvider	.\MismatchResultHandler.h	/^    const SelfDescribe* resultProvider;$/;"	m	struct:MismatchResultHandler
+resultProvider	.\VoidResultHandler.h	/^    const SelfDescribe* resultProvider;$/;"	m	struct:VoidResultHandler
+returnValue	.\RepeatStub.h	/^    Any returnValue;$/;"	m	struct:RepeatStub
+returnValue	.\ReturnStub.h	/^    Any returnValue;$/;"	m	struct:ReturnStub
+sc	.\types\ValueHolder.h	/^       char  sc;$/;"	m	union:SignedLongHolder::Held
+scope	.\PendingMatcher.h	/^	InvocationMockerNamespace* scope;$/;"	m	struct:PendingMatcher
+shared	.\ChainableMockObjectBase.h	/^    bool shared;$/;"	m	struct:ChainableMockObjectBase
+si	.\types\ValueHolder.h	/^       int   si;$/;"	m	union:SignedLongHolder::Held
+signature	.\MsvcRtti.h	/^    unsigned int signature;      \/\/always zero?$/;"	m	struct:RTTIClassHierarchyDescriptor
+signature	.\MsvcRtti.h	/^    unsigned int signature; \/\/always zero ?$/;"	m	struct:RTTICompleteObjectLocator
+sizeOfBuffer	.\IsMirror.h	/^    size_t sizeOfBuffer;$/;"	m	struct:IsMirrorBase
+sizeOfBuffer	.\OutBoundPointer.h	/^    size_t sizeOfBuffer;$/;"	m	struct:OutBoundPointerBase
+sl	.\types\ValueHolder.h	/^       long  sl;$/;"	m	union:SignedLongHolder::Held
+spy	.\ChainingMockHelper.h	/^Constraint* spy(T& val)$/;"	f
+srcfile	.\Exception.h	/^   std::string srcfile;$/;"	m	struct:Exception
+srcline	.\Exception.h	/^   unsigned     srcline;$/;"	m	struct:Exception
+ss	.\types\ValueHolder.h	/^       short ss;$/;"	m	union:SignedLongHolder::Held
+static_assert	.\mockcpp.h	/^struct static_assert$/;"	s
+static_assert_failure	.\mockcpp.h	/^    typedef int static_assert_failure[condition ? 1 : -1];$/;"	t	struct:static_assert
+str	.\StringConstraint.h	/^   std::string str;$/;"	m	struct:StringConstraint
+str	.\TestFailureMatcher.h	/^    std::string str;$/;"	m	struct:TestFailureMatcher
+stub	.\TypelessStubAdapter.h	/^    TypelessStub* stub;$/;"	m	struct:TypelessStubAdapter
+throws	.\ChainingMockHelper.h	/^Stub* throws(const T& ex)$/;"	f
+to	.\IncrementStub.h	/^    T to;$/;"	m	struct:IncrementStub
+toString	.\CheckWith.h	/^    std::string toString() const$/;"	f	struct:CheckWith
+toString	.\Formatter.h	/^std::string toString(T* p)$/;"	f
+toString	.\Formatter.h	/^std::string toString(const T& val)$/;"	f
+toString	.\Formatter.h	/^std::string toString(const T* s)$/;"	f
+toString	.\IncrementStub.h	/^    std::string toString(void) const$/;"	f	struct:IncrementStub
+toString	.\IsAnything.h	/^    virtual std::string toString() const$/;"	f	struct:IsAnything
+toString	.\IsEqual.h	/^    std::string toString() const$/;"	f	struct:IsEqual
+toString	.\IsGreaterThan.h	/^    std::string toString() const$/;"	f	struct:IsGreaterThan
+toString	.\IsLessThan.h	/^    std::string toString() const$/;"	f	struct:IsLessThan
+toString	.\IsMirror.h	/^    std::string toString() const$/;"	f	struct:IsMirrorBase
+toString	.\IsMirror.h	/^   std::string toString(void) const$/;"	f	struct:IsMirror
+toString	.\IsNotEqual.h	/^    std::string toString() const$/;"	f	struct:IsNotEqual
+toString	.\ProcessWith.h	/^    std::string toString() const$/;"	f	struct:ProcessWith
+toString	.\Spy.h	/^    std::string toString() const$/;"	f	struct:Spy
+toString	.\ThrowExceptionStub.h	/^    std::string toString(void) const$/;"	f	struct:ThrowExceptionStub
+toString	.\types\Holder.h	/^    std::string toString() const$/;"	f	struct:Holder
+toTypeAndValueString	.\Formatter.h	/^std::string toTypeAndValueString(const T& val)$/;"	f
+toTypeAndValueString	.\types\Holder.h	/^    std::string toTypeAndValueString() const$/;"	f	struct:Holder
+toTypeString	.\types\Holder.h	/^    std::string toTypeString() const$/;"	f	struct:Holder
+type	.\IncrementStub.h	/^    const std::type_info& type() const$/;"	f	struct:IncrementStub
+type	.\ThrowExceptionStub.h	/^    const std::type_info& type() const$/;"	f	struct:ThrowExceptionStub
+type	.\types\Holder.h	/^    const std::type_info & type() const$/;"	f	struct:Holder
+typeInfo	.\MsvcRtti.h	/^	const std::type_info* typeInfo; \/\/TypeDescriptor of the complete class$/;"	m	struct:RTTICompleteObjectLocator
+typeInfo	.\MsvcRtti.h	/^    std::type_info* typeInfo; \/\/type descriptor of the class$/;"	m	struct:RTTIBaseClassDescriptor
+u	.\GnuMethodInfoReader.h	/^   }u;$/;"	m	struct:GnuMethodDescription	typeref:union:GnuMethodDescription::__anon1
+uc	.\types\ValueHolder.h	/^       unsigned char  uc;$/;"	m	union:UnsignedLongHolder::Held
+ui	.\types\ValueHolder.h	/^       unsigned int   ui;$/;"	m	union:UnsignedLongHolder::Held
+ul	.\types\ValueHolder.h	/^       unsigned long  ul;$/;"	m	union:UnsignedLongHolder::Held
+us	.\types\ValueHolder.h	/^       unsigned short us;$/;"	m	union:UnsignedLongHolder::Held
+value	.\IncrementStub.h	/^    Any value;$/;"	m	struct:IncrementStub
+value	.\TypeString.h	/^   static std::string value()$/;"	f	struct:TypeString
+vdisp	.\MsvcRtti.h	/^    int vdisp;  \/\/displacement inside vbtable$/;"	m	struct:PMD
+verify	.\MockObject.h	/^   void verify()$/;"	f	struct:MockObject
+what_helper	.\Exception.h	/^   mutable std::string  what_helper;$/;"	m	struct:Exception
+where	.\MsvcRtti.h	/^    PMD where;        \/\/pointer-to-member displacement info$/;"	m	struct:RTTIBaseClassDescriptor
+willBeDeleted	.\MockObject.h	/^   void willBeDeleted()$/;"	f	struct:MockObject
+willKeepAlive	.\MockObject.h	/^   void willKeepAlive()$/;"	f	struct:MockObject
+~AfterMatchBuilder	.\AfterMatchBuilder.h	/^    virtual ~AfterMatchBuilder() {}$/;"	f	struct:AfterMatchBuilder
+~ApiHookHolder	.\ApiHookHolder.h	/^   virtual ~ApiHookHolder() {}$/;"	f	struct:ApiHookHolder
+~ArgumentsMatchBuilder	.\ArgumentsMatchBuilder.h	/^    virtual ~ArgumentsMatchBuilder() {}$/;"	f	struct:ArgumentsMatchBuilder
+~BeforeMatchBuilder	.\BeforeMatchBuilder.h	/^    virtual ~BeforeMatchBuilder() {}$/;"	f	struct:BeforeMatchBuilder
+~CallerMatchBuilder	.\CallerMatchBuilder.h	/^   virtual ~CallerMatchBuilder() {}$/;"	f	struct:CallerMatchBuilder
+~ChainableMockMethodBase	.\ChainableMockMethod.h	/^    virtual ~ChainableMockMethodBase() {}$/;"	f	struct:ChainableMockMethodBase
+~ChainableMockMethodKey	.\ChainableMockMethodKey.h	/^    virtual ~ChainableMockMethodKey() {}$/;"	f	struct:ChainableMockMethodKey
+~Constraint	.\Constraint.h	/^    virtual ~Constraint() {}$/;"	f	struct:Constraint
+~IdentityBuilder	.\IdentityBuilder.h	/^    virtual ~IdentityBuilder() {}$/;"	f	struct:IdentityBuilder
+~IndexInvokableGetter	.\IndexInvokableGetter.h	/^    virtual ~IndexInvokableGetter() {}$/;"	f	struct:IndexInvokableGetter
+~InvocationMockerContainer	.\InvocationMockerContainer.h	/^   virtual ~InvocationMockerContainer() {}$/;"	f	struct:InvocationMockerContainer
+~InvocationMockerNamespace	.\InvocationMockerNamespace.h	/^   virtual ~InvocationMockerNamespace() {}$/;"	f	struct:InvocationMockerNamespace
+~Invokable	.\Invokable.h	/^    virtual ~Invokable() {}$/;"	f	struct:Invokable
+~InvokedTimesReader	.\InvokedTimesReader.h	/^    virtual ~InvokedTimesReader() {}$/;"	f	struct:InvokedTimesReader
+~InvokedTimesRecorder	.\InvokedTimesRecorder.h	/^    virtual ~InvokedTimesRecorder() {}$/;"	f	struct:InvokedTimesRecorder
+~IsEqual	.\IsEqual.h	/^    ~IsEqual() {}$/;"	f	struct:IsEqual
+~IsGreaterThan	.\IsGreaterThan.h	/^    ~IsGreaterThan() {}$/;"	f	struct:IsGreaterThan
+~IsLessThan	.\IsLessThan.h	/^    ~IsLessThan() {}$/;"	f	struct:IsLessThan
+~IsMirrorBase	.\IsMirror.h	/^    ~IsMirrorBase()$/;"	f	struct:IsMirrorBase
+~IsNotEqual	.\IsNotEqual.h	/^    ~IsNotEqual() {}$/;"	f	struct:IsNotEqual
+~Matcher	.\Matcher.h	/^    virtual ~Matcher() {}$/;"	f	struct:Matcher
+~Method	.\Method.h	/^    virtual ~Method() {}$/;"	f	struct:Method
+~MethodIndiceChecker	.\MethodIndiceChecker.h	/^   virtual ~MethodIndiceChecker() {}$/;"	f	struct:MethodIndiceChecker
+~MoreStubBuilder	.\MoreStubBuilder.h	/^    virtual ~MoreStubBuilder() {}$/;"	f	struct:MoreStubBuilder
+~ObjectNameGetter	.\ObjNameGetter.h	/^    virtual ~ObjectNameGetter() {}$/;"	f	struct:ObjectNameGetter
+~OrderingMatcher	.\OrderingMatcher.h	/^   virtual ~OrderingMatcher() {}$/;"	f	struct:OrderingMatcher
+~OutBoundPointerBase	.\OutBoundPointer.h	/^    ~OutBoundPointerBase()$/;"	f	struct:OutBoundPointerBase
+~ParameterizedApiHookHolder	.\ParameterizedApiHookHolder.h	/^   ~ParameterizedApiHookHolder() $/;"	f	struct:ParameterizedApiHookHolder
+~PlaceHolder	.\types\PlaceHolder.h	/^    virtual ~PlaceHolder() {}$/;"	f	struct:PlaceHolder
+~ResultHandler	.\ResultHandler.h	/^    virtual ~ResultHandler() {}$/;"	f	struct:ResultHandler
+~ResultHandlerFactory	.\ResultHandlerFactory.h	/^    virtual ~ResultHandlerFactory() {}$/;"	f	struct:ResultHandlerFactory
+~SelfDescribe	.\SelfDescribe.h	/^    virtual ~SelfDescribe() {}$/;"	f	struct:SelfDescribe
+~StatelessMatcher	.\StatelessMatcher.h	/^    virtual ~StatelessMatcher() {}$/;"	f	struct:StatelessMatcher
+~StringPredict	.\StringPredict.h	/^   virtual ~StringPredict() {}$/;"	f	struct:StringPredict
+~Stub	.\Stub.h	/^    virtual ~Stub() {}$/;"	f	struct:Stub
+~StubBuilder	.\StubBuilder.h	/^    virtual ~StubBuilder() {}$/;"	f	struct:StubBuilder
+~TypelessConstraint	.\TypelessConstraint.h	/^    virtual ~TypelessConstraint() {}$/;"	f	struct:TypelessConstraint
+~TypelessStub	.\TypelessStub.h	/^    virtual ~TypelessStub() {}$/;"	f	struct:TypelessStub

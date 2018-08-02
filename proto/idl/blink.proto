@@ -1,0 +1,91 @@
+//option java_package = "com.blink.im.protobuf";
+//option java_outer_classname = "MainProtoBuf";
+//option optimize_for = CODE_SIZE;
+
+package blink;
+
+enum MsgRetCode 
+{
+    EN_MSG_RET_SUCC = 0; //成功
+    EN_MSG_RET_PARSE_ERR = -1; //pb解析失败
+    EN_MSG_RET_TIMEOUT = -2;//服务超时
+	EN_MSG_RET_SYSTEM_ERR = -3;//系统错误
+	EN_MSG_RET_SKEY_INVALID = -4;// skey 非法
+	EN_MSG_RET_MISS_HAND = -5;//没有握手
+	EN_MSG_RET_NOT_LOGIN = -6;//未登录
+	EN_MSG_RET_GET_LOCK_FAIL = -7;//获取锁失败
+	EN_MSG_RET_CALL_REDIS_FAIL = -8;//调用redis失败
+    EN_MSG_ERT_METHOD_LIMIT = -9;//内网限制
+	EN_MSG_RET_SYSTEM_BUSY = -99999;//后端系统繁忙
+	EN_MSG_RET_DEP_SERVICE_DOWN = -100000; //cmdid指定的服务不存在或服务全部down机
+};
+
+message MsgHead 
+{
+    required fixed32 len = 1;
+    required fixed32 crc = 2;
+};
+
+message SwooleHttp{
+    optional SwooleHead header = 1;     
+};
+message SwooleHead{
+    optional string Host = 1;
+};
+enum SCallType
+{
+    EN_MSG_TYPE_REQUEST = 1;
+    EN_MSG_TYPE_RESPONSE = 2;
+};
+
+message TracePoint
+{
+	optional uint64 timestamp = 1;
+	optional string service = 2;
+	optional string method = 3;
+	optional string content = 4;
+	optional int32 milli_cost = 5;
+};
+
+message UserContext
+{
+	required uint64 uid = 1;
+	required string cli_ip = 2;
+	required string conn_ip = 3;
+	required int32  conn_port = 4;
+	optional int32 dev_type = 5;
+	optional uint64 ss_trace_id = 6[default=0];
+	optional int32 dev_crc32 = 7;
+	repeated TracePoint trace_points = 8;
+	optional string ss_trace_id_s = 9;
+	optional int32 flag_test = 10[default = 0];
+};
+
+message MsgBody 
+{
+    optional int32 cmd = 1;//客户端请求类型
+    optional uint64 cli_req_id = 2;//客户端请求序列号，用于客户端恢复请求上下文
+    optional int32 call_type = 3;//服务器之间使用request, response
+    optional uint64 session_code = 4;//用于规避fd重用问题，服务器使用
+	optional UserContext uctx = 5;//用户上下文，服务端使用
+    optional uint64 ss_req_id = 6;//服务器使用, 恢复执行上下文
+
+    optional string service = 7; //服务名
+    optional int32 method = 8;//方法tag
+	optional int32 err_code = 9;//错误码
+    optional bytes payload = 10;//消息负载
+    optional string err_msg = 11;//错误消息
+	optional int32 need_trace_point = 12[default=0];
+}
+
+message MonitorDataInner
+{
+    required string service_type = 1;     //服务类型
+    required string  monitor_key = 2;             //监控项id
+    required int32 monitor_value = 3;  //监控项value
+	optional uint64 timestamp = 4;
+};
+
+message ReqAddMonitorLog {
+    repeated MonitorDataInner monitor_log = 1;
+};

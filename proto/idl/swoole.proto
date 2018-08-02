@@ -1,0 +1,36 @@
+package blink;
+
+message SwooleBodyHeader
+{
+	optional string platform = 1;
+	optional string src = 2;
+	optional string version = 3;
+	optional string buvid = 4;
+	optional string trace_id = 5;
+	optional uint64 uid = 6;
+	optional string caller = 7;
+	optional string user_ip = 8;
+	optional int32 flag_test = 9 [default = 0];
+	optional int32 need_trace = 10[default = 0];
+};
+
+message mc_stat_item
+{
+	required string src_service  = 1;// 源服务
+	required string dst_service  = 2;// 目标服务 (1)
+	required string cmd = 3;// 接口名 (2)
+	required string src_ip = 4;// 源IP
+	required string dst_ip = 5;// 目标IP
+	required string caller = 6;// 请求方  (3)
+	required int64 req_time = 7;// 请求时间
+	required int64 resp_time = 8;// 处理时间
+	required int64 biz_cost = 9;// 耗时
+	required int64 socket_code = 10;// 套接字返回码
+	required int64 biz_code = 11;// 业务返回码
+};
+
+message collect_request
+{
+	repeated mc_stat_item new_items = 1;
+	optional uint64 last_report_time = 2; 
+};

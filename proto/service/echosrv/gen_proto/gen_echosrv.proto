@@ -1,0 +1,11 @@
+
+package echo;
+
+message echo_request{
+	required string content = 1;
+};
+
+message echo_response{
+	required string content = 1;
+};
+

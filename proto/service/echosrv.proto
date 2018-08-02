@@ -1,0 +1,15 @@
+package echo;
+
+
+message echo_request{
+	required string content = 1;
+};
+
+message echo_response{
+	required string content = 1;
+};
+
+service echosrv
+{
+	int echo(request echo_request req, response echo_response rsp) = 1;
+};

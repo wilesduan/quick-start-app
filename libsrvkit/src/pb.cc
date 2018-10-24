@@ -91,6 +91,12 @@ static int process_pb_response(ev_ptr_t* ptr, const blink::MsgBody& body)
 		milli_cost = body.uctx().trace_points(last).milli_cost();
 	}
 
+	if(ptr->cli){
+		int cpu_usage = body.cpu_usage()>100?100:body.cpu_usage();
+		cpu_usage = cpu_usage<=0?0:cpu_usage;
+		ptr->cli->weight = cpu_usage/2+1;
+	}
+
 	if(is_co_in_batch_mode(req_co)){
 		batch_rpc_result_t* rslt = get_co_req_rslt_by_req_id(req_co, ss_req_id);
 		if(NULL == rslt){
@@ -278,6 +284,7 @@ int serialize_buff_to_send_chain(ev_ptr_t* ptr, coroutine_t* co, int ret_code, c
 	body.set_ss_req_id(co->ss_req_id);
     body.set_cli_req_id(co->cli_req_id);
 	body.set_cmd((blink::CmdId)co->cmd_id);
+	body.set_cpu_usage(((worker_thread_t*)(co->worker))->cpu_usage);
 	if(err_msg)body.set_err_msg(err_msg);
 
 	if(co->proto_user_ctx && ptr && ptr->listen && (!(((listen_t*)ptr->listen)->tag&1))){

@@ -288,6 +288,7 @@ static int init_worker_threads(server_t* server)
 	for(int i = 0; i < server->num_worker; ++i){
 		worker_thread_t* worker = server->array_worker + i;
 		worker->mt = server;
+		worker->idx = i;
 		memcpy(&worker->wt_fns, &(server->wt_fns), sizeof(wt_call_backs_t));
 		init_wt(worker, server->config);
 		worker->next = worker+1;
@@ -415,6 +416,16 @@ int run_server(server_t* server)
 	return 0;
 }
 
+static float get_cpu_usage(struct rusage* pre_usage, int who)
+{
+	struct rusage usage;
+	getrusage(who, &usage);
+	long int total_time = (usage.ru_utime.tv_sec*1000+usage.ru_utime.tv_usec/1000+usage.ru_stime.tv_sec*1000+usage.ru_stime.tv_usec/1000) - (pre_usage->ru_utime.tv_sec*1000+pre_usage->ru_utime.tv_usec/1000+pre_usage->ru_stime.tv_sec*1000+pre_usage->ru_stime.tv_usec/1000);
+	float cpu_usage = (1.0*total_time)/100;
+	memcpy(pre_usage, &usage, sizeof(usage));
+	return cpu_usage;
+}
+
 static void log_server_stat(server_t* server)
 {
 	list_head* p;
@@ -423,29 +434,22 @@ static void log_server_stat(server_t* server)
 		LOG_DBG("%s:%d fd:%d monitor by worker:%llu", lt->ip, lt->port, lt->fd, (long long unsigned)lt->accept_worker);
 	}
 
-	static time_t last = time(NULL);
-	time_t now = time(NULL);
-	int clean = 0;
-	if(now >= last + 3600){
-		clean = 1;
-		last = now;
-	}
-
 	for(int i = 0; i < server->num_worker; ++i){
 		worker_thread_t* worker = server->array_worker + i;
-		LOG_INFO("worker:%llu connections:%llu, num alloc co:%d, num alloc ev:%d, free_co:%llu, free_ev:%llu, num request:%llu", (long long unsigned)worker, worker->conns, worker->num_alloc_co, worker->num_alloc_ev_ptr, worker->num_free_co, worker->num_free_ev_ptr, worker->num_request);
-		if(clean){
-			worker->num_request = 0;
-		}
+		LOG_INFO("worker:%llu connections:%llu, num alloc co:%d, num alloc ev:%d, free_co:%llu, free_ev:%llu, num request:%llu, cpu_usage:%d", (long long unsigned)worker, worker->conns, worker->num_alloc_co, worker->num_alloc_ev_ptr, worker->num_free_co, worker->num_free_ev_ptr, worker->num_request, worker->cpu_usage);
 	}
 
+#if 0
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
-	long int total_time = (usage.ru_utime.tv_sec*1000+usage.ru_utime.tv_usec/1000+usage.ru_stime.tv_sec*1000+usage.ru_stime.tv_usec/1000) - (server->pre_uage.ru_utime.tv_sec*1000+server->pre_uage.ru_utime.tv_usec/1000+server->pre_uage.ru_stime.tv_sec*1000+server->pre_uage.ru_stime.tv_usec/1000);
+	long int total_time = (usage.ru_utime.tv_sec*1000+usage.ru_utime.tv_usec/1000+usage.ru_stime.tv_sec*1000+usage.ru_stime.tv_usec/1000) - (server->pre_usage.ru_utime.tv_sec*1000+server->pre_usage.ru_utime.tv_usec/1000+server->pre_usage.ru_stime.tv_sec*1000+server->pre_usage.ru_stime.tv_usec/1000);
 	float cpu_usage = (1.0*total_time)/100;
-	memcpy(&(server->pre_uage), &usage, sizeof(usage));
+	memcpy(&(server->pre_usage), &usage, sizeof(usage));
+#endif
+
+	float cpu_usage = get_cpu_usage(&(server->pre_usage), RUSAGE_SELF);
 	LOG_DBG("cpu usage:%f", cpu_usage);
-	MONITOR_FINAL("cpu_usage", total_time/100);
+	MONITOR_FINAL("cpu_usage", (int)cpu_usage);
 
 	FILE* fp = fopen("/proc/self/status", "r");
 	if(!fp){
@@ -514,7 +518,7 @@ static void run_child(server_t* server)
 	}
 
 	add_signal_fd(server);
-	getrusage(RUSAGE_SELF, &(server->pre_uage));
+	getrusage(RUSAGE_SELF, &(server->pre_usage));
 	int maxevs = 10;
 	int n = 0;
 	int i;
@@ -958,11 +962,14 @@ static void* run_worker(void* arg)
 
 	worker_thread_t* worker = (worker_thread_t*)arg;
 	monitor_accept(worker);
+	worker->cpu_usage = 0;
+	getrusage(RUSAGE_THREAD, &worker->last_st);
 
 	run_timers(&worker->timers);
 	worker->last_check_timeout_time = get_milli_second();
 	worker->next_check_index = 0;
 
+	uint64_t last_tick = get_monotonic_milli_second();
 	int maxevs = 1024;
 	int fds[1024];
 	int n = 0;
@@ -1003,6 +1010,12 @@ static void* run_worker(void* arg)
 
 		wait_time = get_next_timeout(&(worker->timers));
 		LOG_DBG("next wait time:%d", wait_time);
+		uint64_t now = get_monotonic_milli_second();
+		if(now > last_tick+10000){
+			last_tick = now;
+			worker->cpu_usage = get_cpu_usage(&(worker->last_st), RUSAGE_THREAD) + 1;
+			LOG_DBG("worker:%llu cpu usage:%llu", (long long unsigned)worker, worker->cpu_usage);
+		}
 	}
 	return NULL;
 }

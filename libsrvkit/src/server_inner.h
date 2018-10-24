@@ -16,6 +16,7 @@
 #include <timer_def.h>
 #include <connector.h>
 #include <blink.pb.h>
+#include <net.h>
 
 
 #define K_MAX_NAME_LEN 20
@@ -227,8 +228,18 @@ typedef struct proto_client_inst_t
 	http2_ssl_connection_t ssl_conn;
 	char* ssl_cert_path;
 	char* ssl_cert_key;
+
+	int weight;//cpu usage
+	list_head weight_list;
 }proto_client_inst_t;
 
+enum en_load_balance
+{
+	EN_LOAD_BALANCE_ROUND_ROBIN = 1,
+	EN_LOAD_BALANCE_WEIGHT = 2,
+};
+
+#define K_CLI_WEIGHT_SIZE 64 
 typedef struct proto_client_t
 {
 	list_head list;
@@ -238,6 +249,7 @@ typedef struct proto_client_t
 	char from_zk;
 	char hash;
 	int timeout;
+	int load_balance;
 
 	breaker_setting_t breaker_setting;
 
@@ -252,6 +264,10 @@ typedef struct proto_client_t
 	proto_client_inst_t* cli_inst_s;
 	char* ssl_cert_path;
 	char* ssl_cert_key;
+
+	size_t weight_idx;
+	list_head weight_array[K_CLI_WEIGHT_SIZE];
+	uint64_t weight_bitmap;
 }proto_client_t;
 
 enum redis_server_type
@@ -293,6 +309,7 @@ typedef struct redis_client_t
 
 typedef struct worker_thread_t
 {
+	int idx;
 	coroutine_t* wt_co;
 	int epoll_fd;
 	int pipefd[2];
@@ -343,6 +360,8 @@ typedef struct worker_thread_t
 	struct rpc_ctx_t pipe_ctx;
 
 	uint64_t num_request;
+	struct rusage last_st;
+	int cpu_usage;
 }worker_thread_t;
 
 typedef void* (*fn_pthread_routine)(void*);
@@ -398,6 +417,7 @@ typedef struct listen_t
 	char tag;//public internet
 	int limit;
 	worker_thread_t* accept_worker;
+	int accept_strategy;
 }listen_t;
 
 typedef struct server_t
@@ -424,7 +444,7 @@ typedef struct server_t
 	list_head services;
 	list_head listens;
 
-	struct rusage pre_uage;
+	struct rusage pre_usage;
 
 	list_head kafka_consumers;
 	list_head kafka_producers;

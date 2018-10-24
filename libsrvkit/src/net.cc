@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <net.h>
+#include <set>
 
 #include <server_inner.h>
 #include <http2_client.h>
@@ -13,7 +15,7 @@ static bool g_ssl_init = false;
 extern char* g_app_name;
 
 static int do_read_msg_from_tcp(void* arg);
-static void yield_accept(ev_ptr_t* ptr);
+static void yield_accept(ev_ptr_t* ptr, int accept_strategy);
 static int notify_accept(worker_thread_t* next, listen_t* lt);
 
 static int do_accept_fd(void* arg)
@@ -94,7 +96,7 @@ static int do_accept_fd(void* arg)
 		add_ev_ptr_2_idle_time_wheel(worker, newptr);
 	}
 
-	yield_accept(ptr);
+	yield_accept(ptr, lt->accept_strategy);
 	return 0;
 }
 
@@ -124,7 +126,7 @@ static void do_yield_accept(ev_ptr_t* ptr, worker_thread_t* next)
 	}
 }
 
-static void yield_accept(ev_ptr_t* ptr)
+static void yield_accept(ev_ptr_t* ptr, int accept_strategy)
 {
 	worker_thread_t* worker = (worker_thread_t*)(ptr->arg);
 	server_t* server = (server_t*)(worker->mt);
@@ -135,13 +137,25 @@ static void yield_accept(ev_ptr_t* ptr)
 	}
 	*/
 
-	static __thread size_t round = 0;
-	size_t start = (round++) % server->num_worker;
+	//static size_t round = 0;
+	//size_t idx = __sync_fetch_and_add(&round, 1);
+	size_t start = (worker->idx+1) % server->num_worker;
 	worker_thread_t* next = server->array_worker+start;
-	for(int i = 1; i < server->num_worker; ++i){
+	for(int i = 0; accept_strategy != EN_ACCEPT_ROUND_ROBIN && i < server->num_worker; ++i){
 		worker_thread_t* w = server->array_worker + ((i + start)%server->num_worker);
-		if(w->conns < next->conns){
-			next = w;
+		switch(accept_strategy){
+			case EN_ACCEPT_CONNS_LESS_FIRST:
+				if(w->conns < next->conns){
+					next = w;
+				}
+				break;
+			case EN_ACCEPT_REQUEST_LESS_FIRST:
+				if(w->num_request < next->num_request){
+					next = w;
+				}
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -587,6 +601,77 @@ void init_client_inst(worker_thread_t* worker, proto_client_inst_t* cli, const s
 	}
 }
 
+static list_head* get_next_weight_cli_list(proto_client_t* cli)
+{
+	return cli->weight_array + cli->weight_idx;
+}
+
+static void put_client_inst_2_weight_list(proto_client_inst_t* inst, proto_client_t* clients, size_t idx)
+{
+	idx = idx%K_CLI_WEIGHT_SIZE;
+	list_del(&inst->weight_list);
+	list_add(&inst->weight_list, clients->weight_array+idx);
+	clients->weight_bitmap |= (((uint64_t)1)<<idx);
+}
+
+static void remove_client_from_weight_list(proto_client_inst_t* inst, proto_client_t* clients, size_t idx)
+{
+	idx = idx%K_CLI_WEIGHT_SIZE;
+	list_del(&inst->weight_list);
+	INIT_LIST_HEAD(&inst->weight_list);
+	list_head* list = clients->weight_array + idx;
+	if(!list_empty(list)){
+		return;
+	}
+
+	clients->weight_bitmap &= (~(((uint64_t)1)<<idx));
+}
+
+static size_t get_next_nonempty_idx(proto_client_t* clients)
+{
+	size_t idx = clients->weight_idx;
+	uint64_t mask = ~((((uint64_t)1)<<idx)-1);
+	uint64_t tmp = (clients->weight_bitmap&mask)>>idx;
+	size_t offset = 0;
+	if(tmp){
+		offset = idx;
+	}else{
+		tmp = clients->weight_bitmap;
+	}
+
+	if(!(tmp & 0xffffffff)){
+		offset += 32;
+		tmp >>= 32;
+	}
+	if(!(tmp & 0xffff)){
+		offset += 16;
+		tmp >>= 16;
+	}
+
+	if(!(tmp & 0xff)){
+		offset += 8;
+		tmp >>= 8; 
+	}
+
+	if(!(tmp & 0xf)){
+		offset += 4;
+		tmp >>= 4;
+	}
+	
+	if(!(tmp & 3)){
+		offset += 2;
+		tmp >>= 2;
+	}
+
+	if(!(tmp & 1)){
+		offset += 1;
+		tmp >>= 1;
+	}
+
+	return offset;
+}
+
+
 static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, json_object* inst)
 {
 	json_object* js_service = NULL;
@@ -606,6 +691,9 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 
 	json_object* js_type = NULL;
 	json_object_object_get_ex(inst, "type", &js_type);
+
+	json_object* js_load_balance = NULL;
+	json_object_object_get_ex(inst, "load_balance", &js_load_balance);
 
 	json_object* js_timeout = NULL;
 	json_object_object_get_ex(inst, "timeout", &js_timeout);
@@ -657,6 +745,17 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 		}
 	}
 
+	cli->load_balance = EN_LOAD_BALANCE_ROUND_ROBIN;
+	if(js_load_balance && strcmp(json_object_get_string(js_load_balance), "weight") == 0){
+		cli->load_balance = EN_LOAD_BALANCE_WEIGHT;
+	}
+
+	for(int i = 0; i < K_CLI_WEIGHT_SIZE; ++i){
+		list_head* item = cli->weight_array+i;
+		INIT_LIST_HEAD(item);
+	}
+	cli->weight_idx = 0;
+
 	if(js_sock){
 		const char* sock = json_object_get_string(js_sock);
 		if(sock && strcmp(sock, "udp") == 0){
@@ -688,6 +787,10 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 		}
 
 		init_client_inst(worker, cli->cli_inst_s+i, ip_ports[i], -1);
+
+		(cli->cli_inst_s+i)->weight = 1;
+		INIT_LIST_HEAD(&(cli->cli_inst_s+i)->weight_list);
+		put_client_inst_2_weight_list(cli->cli_inst_s+i, cli, 0);
 	}
 
 	for(size_t i = 0; i < ip_ports.size(); ++i){
@@ -716,23 +819,23 @@ void add_dep_service(worker_thread_t* wt, json_object* config)
 	}
 }
 
-static int add_tcp_port(server_t* server, const char* sz_type, const char* ip, int port, char heartbeat, String_vector* services, int acc_num, int idle, int _public, int limit)
+static int add_tcp_port(server_t* server, listen_paramter_t* parameters)
 {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0){
-		LOG_ERR("failed to create sokect for port:%d", port);
+		LOG_ERR("failed to create sokect for port:%d", parameters->port);
 		return -1;
 	}
 
 	int rc = 0;
-	if(strcmp(sz_type, "evip") == 0){
-		rc = util_set_socket_and_bind(sock, "0.0.0.0", port);
+	if(strcmp(parameters->sz_type, "evip") == 0){
+		rc = util_set_socket_and_bind(sock, "0.0.0.0", parameters->port);
 	}else{
-		rc = util_set_socket_and_bind(sock, ip, port);
+		rc = util_set_socket_and_bind(sock, parameters->ip, parameters->port);
 	}
 
 	if(rc){
-		LOG_ERR("failed to bind tcp port:%d", port);
+		LOG_ERR("failed to bind tcp port:%d", parameters->port);
 		close(sock);
 		return -2;
 	}
@@ -744,23 +847,24 @@ static int add_tcp_port(server_t* server, const char* sz_type, const char* ip, i
 	INIT_LIST_HEAD(&(tl->worker));
 
 	tl->type = EN_LISTEN_TCP;
-	strncpy(tl->ip, ip, sizeof(tl->ip));
-	tl->port = port;
+	strncpy(tl->ip, parameters->ip, sizeof(tl->ip));
+	tl->port = parameters->port;
 	tl->fd = sock;
 	tl->do_epoll_ev = do_accept_fd;
-	if(_public){
+	tl->accept_strategy = parameters->accept_strategy;
+	if(parameters->_public){
 		tl->tag |= 1;
 	}
-	tl->limit = limit;
+	tl->limit = parameters->limit;
 	
-	tl->heartbeat = heartbeat;
-	tl->accept_num_before_yield = acc_num;
-	tl->idle_time = idle;
-	if(services->count){
-		tl->count = services->count;
+	tl->heartbeat = parameters->heartbeat;
+	tl->accept_num_before_yield = parameters->acc_num;
+	tl->idle_time = parameters->idle;
+	if(parameters->services.count){
+		tl->count = parameters->services.count;
 		tl->lt_services= (char**)calloc(tl->count, sizeof(char*));
 		for(int i = 0; i < tl->count; ++i){
-			tl->lt_services[i] = strdup(services->data[i]);
+			tl->lt_services[i] = strdup((parameters->services).data[i]);
 		}
 	}
 
@@ -768,16 +872,16 @@ static int add_tcp_port(server_t* server, const char* sz_type, const char* ip, i
 	return 0;
 }
 
-static int add_udp_port(server_t* server, const char* ip, int port, char heartbeat, String_vector* services, int acc_num, int idle)
+static int add_udp_port(server_t* server,listen_paramter_t* parameters) 
 {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if(sock < 0){
 		return -1;
 	}
 
-	int rc = util_set_socket_and_bind(sock, ip, port);
+	int rc = util_set_socket_and_bind(sock, parameters->ip, parameters->port);
 	if(rc){
-		LOG_ERR("failed to bind udp port:%d", port);
+		LOG_ERR("failed to bind udp port:%d", parameters->port);
 		close(sock);
 		return -2;
 	}
@@ -787,19 +891,20 @@ static int add_udp_port(server_t* server, const char* ip, int port, char heartbe
 	INIT_LIST_HEAD(&(tl->worker));
 
 	tl->type = EN_LISTEN_UDP;
-	strncpy(tl->ip, ip, sizeof(tl->ip));
-	tl->port = port;
+	strncpy(tl->ip, parameters->ip, sizeof(tl->ip));
+	tl->port = parameters->port;
 	tl->fd = sock;
 	tl->do_epoll_ev = do_recv_from_udp;
-	tl->accept_num_before_yield = acc_num;
-	tl->idle_time = idle;
+	tl->accept_num_before_yield = parameters->acc_num;
+	tl->idle_time = parameters->idle;
 
-	tl->heartbeat = heartbeat;
-	if(services->count){
-		tl->count = services->count;
+	tl->heartbeat = parameters->heartbeat;
+	tl->accept_strategy = parameters->accept_strategy;
+	if(parameters->services.count){
+		tl->count = parameters->services.count;
 		tl->lt_services = (char**)calloc(tl->count, sizeof(char*));
 		for(int i = 0; i < tl->count; ++i){
-			tl->lt_services[i] = strdup(services->data[i]);
+			tl->lt_services[i] = strdup(parameters->services.data[i]);
 		}
 	}
 	
@@ -807,11 +912,11 @@ static int add_udp_port(server_t* server, const char* ip, int port, char heartbe
 	return 0;
 }
 
-static int add_http_port(server_t* server, const char* sz_type, const char* ip, int port, char heartbeat, String_vector* services, int acc_num, int idle)
+static int add_http_port(server_t* server, listen_paramter_t* parameters)
 {
-	int rc = add_tcp_port(server, sz_type, ip, port, heartbeat, services, acc_num, idle, 0, 0);
+	int rc = add_tcp_port(server, parameters);
 	if(rc){
-		LOG_ERR("failed to listen to http:%s:%s:%d", sz_type, ip, port);
+		LOG_ERR("failed to listen to http:%s:%s:%d", parameters->sz_type, parameters->ip, parameters->port);
 		return rc;
 	}
 
@@ -841,7 +946,7 @@ static void get_listen_ip(ifip_t* ifip, const char* ifname, char* sz_ip)
 	strcpy(sz_ip, "0.0.0.0");
 }
 
-static void parse_parameters(const char* params, char* heartbeat, String_vector* services, int* acc_num, int* idle, int* _public, int* limit)
+static void parse_parameters(const char* params, listen_paramter_t* parameters)
 {
 	const char* start = params;
 	const char* p = start;
@@ -864,24 +969,32 @@ parse:
 	}
 
 	if(strncmp(start, "heartbeat", equal-start) == 0){
-		*heartbeat = atoi(equal+1);
+		parameters->heartbeat = atoi(equal+1);
 	}else if(strncmp(start, "public", equal-start) == 0){
-		*_public = atoi(equal+1);
+		parameters->_public = atoi(equal+1);
 	}else if(strncmp(start, "limit", equal-start) == 0){
-		*limit=atoi(equal+1);
+		parameters->limit=atoi(equal+1);
+	}else if(strncmp(start, "acc_type", equal-start) == 0){
+		if(strncmp(equal+1, "round", 5) == 0){
+			parameters->accept_strategy = EN_ACCEPT_ROUND_ROBIN;
+		}else if(strncmp(equal+1, "conns", 5) == 0){
+			parameters->accept_strategy = EN_ACCEPT_CONNS_LESS_FIRST;
+		}else if(strncmp(equal+1, "reqst", 5) == 0){
+			parameters->accept_strategy = EN_ACCEPT_REQUEST_LESS_FIRST;
+		}
 	}else if(strncmp(start, "acc_num", equal-start) == 0){
-		*acc_num = atoi(equal+1);
-		if(*acc_num <= 0){
-			*acc_num = 1;
+		parameters->acc_num = atoi(equal+1);
+		if(parameters->acc_num <= 0){
+			parameters->acc_num = 1;
 		}
 	}else if(strncmp(start, "idle_time", equal-start) == 0){
-		*idle = atoi(equal+1);
-		if(*idle <= 0){
-			*idle = K_DEFALUT_IDLE_TIME;
+		parameters->idle = atoi(equal+1);
+		if(parameters->idle <= 0){
+			parameters->idle = K_DEFALUT_IDLE_TIME;
 		}
 
-		if(*idle >= K_MAX_TIMEOUT){
-			*idle = K_MAX_TIMEOUT-1;
+		if(parameters->idle >= K_MAX_TIMEOUT){
+			parameters->idle = K_MAX_TIMEOUT-1;
 		}
 	}else if(strncmp(start, "services", equal-start) == 0){
 		s1 = s2 = equal + 1;
@@ -897,10 +1010,10 @@ parse_service:
 			s1 = s2 = s2+1;
 			goto parse_service;
 		}else{
-			services->count = (int)servs.size();
-			services->data = (char**)calloc(servs.size(), sizeof(char*));
+			parameters->services.count = (int)servs.size();
+			parameters->services.data = (char**)calloc(servs.size(), sizeof(char*));
 			for(i = 0; i < servs.size(); ++i){
-				services->data[i] = servs[i];
+				(parameters->services).data[i] = servs[i];
 			}
 		}
 
@@ -916,9 +1029,7 @@ next:
 	goto parse;
 }
 
-#define K_PROTOCOL_MAX_LEN 20
-#define K_IFN_MAX_LEN 20
-static int parse_listen_url(const char* url, char* sz_type, char* sz_ifn, int* port, char* heartbeat, String_vector* services, int* acc_num, int* idle, int* _public, int* limit)
+static int parse_listen_url(const char* url, listen_paramter_t* paremters) 
 {
 	if(NULL == url){
 		return -1;
@@ -931,8 +1042,8 @@ static int parse_listen_url(const char* url, char* sz_type, char* sz_ifn, int* p
 	if(NULL == p || p - start > K_PROTOCOL_MAX_LEN){
 		return -2;
 	}
-	snprintf(sz_type, p-start+1, "%s", start);
-	sz_type[p-start] = 0;
+	snprintf(paremters->sz_type, p-start+1, "%s", start);
+	(paremters->sz_type)[p-start] = 0;
 
 	start = p+3;
 	p = start;
@@ -940,19 +1051,19 @@ static int parse_listen_url(const char* url, char* sz_type, char* sz_ifn, int* p
 	if(NULL == p || p - start > K_IFN_MAX_LEN){
 		return -3;
 	}
-	snprintf(sz_ifn, p-start+1, "%s", start);
-	sz_ifn[p-start] = 0;
+	snprintf(paremters->sz_ifn, p-start+1, "%s", start);
+	(paremters->sz_ifn)[p-start] = 0;
 
 	start = p+1;
 	p = start;
 
-	*port = atoi(start);
+	paremters->port = atoi(start);
 	p = strstr(start, "?");
 	if(NULL == p){
 		return 0;
 	}
 
-	parse_parameters(p+1, heartbeat, services, acc_num, idle, _public, limit);
+	parse_parameters(p+1, paremters);
 
 	return 0;
 }
@@ -972,60 +1083,55 @@ int do_listen(server_t* server)
 		json_object* inst = json_object_array_get_idx(listen, i);
 
 		const char* url = json_object_get_string(inst);
-		char sz_type[K_PROTOCOL_MAX_LEN+1];
-		char sz_ifn[K_IFN_MAX_LEN+1];
-		int port;
-		char heartbeat = 0;
-		int acc_num = 1;
-		int idle = K_DEFALUT_IDLE_TIME;
-		int _public = 0;
-		int limit = 0;
-		String_vector services;
-		services.count = 0;
-		int rc = parse_listen_url(url, sz_type, sz_ifn, &port, &heartbeat, &services, &acc_num, &idle, &_public, &limit);
+		listen_paramter_t paremters;
+		bzero(&paremters, sizeof(paremters));
+		paremters.idle = K_DEFALUT_IDLE_TIME;
+		paremters.acc_num = 1;
+		paremters.accept_strategy = EN_ACCEPT_CONNS_LESS_FIRST;
+
+		int rc = parse_listen_url(url, &paremters);
 		if(rc){
 			LOG_ERR("invalid url:%s", url);
 			util_free_ifip(&ifips);
 			return rc;
 		}
 
-		char sz_listen_ip[128];
-		if(strcmp(sz_type, "evip") == 0){
+		if(strcmp(paremters.sz_type, "evip") == 0){
 			char* file = read_file_content("/etc/evip");
 			if(NULL == file){
 				printf("failed to read content from evip\n");
 				return -10000;
 			}
 
-			strncpy(sz_listen_ip, file, sizeof(sz_listen_ip) - 1);
-			char* last = sz_listen_ip+strlen(sz_listen_ip);
-			while(last != sz_listen_ip){
+			strncpy(paremters.ip, file, sizeof(paremters.ip) - 1);
+			char* last = paremters.ip+strlen(paremters.ip);
+			while(last != paremters.ip){
 				if(*last == '\n' || *last == '\t'){
 					*last = 0;
 				}
 				--last;
 			}
-			//printf("evip:%s\n", sz_listen_ip);
+
 			free(file);
 		}else{
-			get_listen_ip(ifips, sz_ifn, sz_listen_ip);
+			get_listen_ip(ifips, paremters.sz_ifn, paremters.ip);
 		}
 
-		if((strcmp(sz_type, "tcp") == 0 || strcmp(sz_type, "evip") == 0) && add_tcp_port(server, sz_type, sz_listen_ip, port, heartbeat, &services, acc_num, idle, _public, limit)){
-			deallocate_String_vector(&services);
+		if((strcmp(paremters.sz_type, "tcp") == 0 || strcmp(paremters.sz_type, "evip") == 0) && add_tcp_port(server, &paremters)){
+			deallocate_String_vector(&(paremters.services));
 			util_free_ifip(&ifips);
 			return -2;
-		}else if(strcmp(sz_type, "udp") == 0 && add_udp_port(server, sz_listen_ip, port, heartbeat, &services, acc_num, idle)){
+		}else if(strcmp(paremters.sz_type, "udp") == 0 && add_udp_port(server, &paremters)){
 			util_free_ifip(&ifips);
-			deallocate_String_vector(&services);
+			deallocate_String_vector(&(paremters.services));
 			return -3;
-		}else if(strcmp(sz_type, "http") == 0 && add_http_port(server, sz_type, sz_listen_ip, port, heartbeat, &services, acc_num, idle)){
+		}else if(strcmp(paremters.sz_type, "http") == 0 && add_http_port(server, &paremters)){
 			util_free_ifip(&ifips);
-			deallocate_String_vector(&services);
+			deallocate_String_vector(&(paremters.services));
 			return -4;
 		}
 
-		deallocate_String_vector(&services);
+		deallocate_String_vector(&(paremters.services));
 	}
 
 	util_free_ifip(&ifips);
@@ -1139,14 +1245,8 @@ ev_ptr_t* get_cli_ptr_by_ip(worker_thread_t* worker, const char* service, const 
 	return instance->ptr;
 }
 
-ev_ptr_t* get_cli_ptr(worker_thread_t* worker, coroutine_t* co, const char* service)
+static ev_ptr_t* get_cli_ptr_by_round_robin(worker_thread_t* worker, coroutine_t* co, proto_client_t* client)
 {
-	proto_client_t* client = get_clients_by_service(worker, service);
-	if(NULL == client || 0 == client->num_clients){
-		LOG_ERR("no client for service:%s worker:%llu", service, (long long unsigned)worker);
-		return NULL;
-	}
-
 	size_t start = client->next_cli;
 	if(client->hash){
 		uint64_t hash_key = co->hash_key;
@@ -1164,7 +1264,7 @@ ev_ptr_t* get_cli_ptr(worker_thread_t* worker, coroutine_t* co, const char* serv
 			if(check_in_circuit_breaker(s->ptr->breaker)){
 				return s->ptr;
 			}else{
-				LOG_ERR("[%s_ALARM][%s_%s_%d]@circuit breaker failed. code:1, trace_id:0, uid:0 open:%d", g_app_name, service, s->ip, s->port, client->breaker_setting.open);
+				LOG_ERR("[%s_ALARM][%s_%s_%d]@circuit breaker failed. code:1, trace_id:0, uid:0 open:%d", g_app_name, client->service, s->ip, s->port, client->breaker_setting.open);
 				if(!client->breaker_setting.open){
 					return s->ptr;
 				}
@@ -1174,12 +1274,75 @@ ev_ptr_t* get_cli_ptr(worker_thread_t* worker, coroutine_t* co, const char* serv
 		i = (i+1)%(client->num_clients);
 
 		if(client->hash)
-			LOG_ERR("the hashed server:(%s %s:%d) is down, try to find next. worker:%llu", service, s->ip, s->port, (long long unsigned)worker);
+			LOG_ERR("the hashed server:(%s %s:%d) is down, try to find next. worker:%llu", client->service, s->ip, s->port, (long long unsigned)worker);
 	}while(i != start);
 
-	LOG_ERR("all client of service:%s is down worker:%llu", service, (long long unsigned)worker);
+	LOG_ERR("all client of service:%s is down worker:%llu", client->service, (long long unsigned)worker);
 	return NULL;
 }
+
+
+static ev_ptr_t* get_cli_ptr_by_weight(worker_thread_t* worker, coroutine_t* co, proto_client_t* client)
+{
+	list_head* list = NULL;
+	list_head* p;
+	list_head* n;
+	proto_client_inst_t* inst;
+	std::set<proto_client_inst_t*> scan_inst;
+get_list:
+	list = get_next_weight_cli_list(client);
+
+	list_for_each_safe(p, n, list){
+		inst = list_entry(p, proto_client_inst_t, weight_list);
+		remove_client_from_weight_list(inst, client, client->weight_idx);
+		put_client_inst_2_weight_list(inst, client, client->weight_idx+inst->weight);
+		scan_inst.insert(inst);
+#if 0
+		if(inst->ptr && (check_in_circuit_breaker(inst->ptr->breaker) || !client->breaker_setting.open)){
+			return inst->ptr;
+		}
+#endif
+		if(inst->ptr){
+			LOG_INFO("get cli ptr by weight. %s:%d:%d", inst->ip, inst->port, inst->weight);
+			if(check_in_circuit_breaker(inst->ptr->breaker)){
+				return inst->ptr;
+			}else{
+				LOG_ERR("[%s_ALARM][%s_%s_%d]@circuit breaker failed. code:1, trace_id:0, uid:0 open:%d", g_app_name, client->service, inst->ip, inst->port, client->breaker_setting.open);
+				if(!client->breaker_setting.open){
+					return inst->ptr;
+				}
+			}
+		}
+	}
+
+	client->weight_idx = get_next_nonempty_idx(client);
+	if(scan_inst.size() < client->num_clients ){
+		goto get_list;
+	}
+
+	LOG_ERR("all client of service:%s is down worker:%llu", client->service, (long long unsigned)worker);
+	return NULL;
+}
+
+ev_ptr_t* get_cli_ptr(worker_thread_t* worker, coroutine_t* co, const char* service)
+{
+	proto_client_t* client = get_clients_by_service(worker, service);
+	if(NULL == client || 0 == client->num_clients){
+		LOG_ERR("no client for service:%s worker:%llu", service, (long long unsigned)worker);
+		return NULL;
+	}
+
+	switch(client->load_balance){
+		case EN_LOAD_BALANCE_WEIGHT:
+			return get_cli_ptr_by_weight(worker, co, client);
+			break;
+		case EN_LOAD_BALANCE_ROUND_ROBIN:
+		default:
+			return get_cli_ptr_by_round_robin(worker, co, client);
+	}
+	return NULL;
+}
+
 
 void monitor_accept(worker_thread_t* worker)
 {
@@ -1269,6 +1432,9 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 		(cli->cli_inst_s+i)->invalid = 1;
 	}
 
+	cli->weight_idx = 0;
+	cli->weight_bitmap = 0;
+
 	cli_inst = (proto_client_inst_t*)calloc(ip_ports.size(), sizeof(proto_client_inst_t));
 	LOG_INFO("recv ip:port list from zk, service:%s num:%llu\n", cli->service, ip_ports.size());
 	for(i = 0; i < ip_ports.size(); ++i){
@@ -1279,14 +1445,27 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 		(cli_inst+i)->breaker_setting = &cli->breaker_setting;
 		(cli_inst+i)->timeout = cli->timeout;
 		(cli_inst+i)->service = cli->service;
+
+		INIT_LIST_HEAD(&((cli_inst+i)->weight_list));
+		(cli_inst+i)->weight = 1;
+		put_client_inst_2_weight_list(cli_inst+i, cli, 0);
+
 		for(k = 0; k < (int)(cli->num_clients); ++k){
 			if(strcmp((cli->cli_inst_s+k)->ip, ip) == 0 && (cli->cli_inst_s+k)->port == port){
 				//???del_disconnect_event_from_timer???
 				list_del(&((cli->cli_inst_s+k)->disconnected_client_wheel));
 				INIT_LIST_HEAD(&((cli->cli_inst_s+k)->disconnected_client_wheel));
+				list_del(&((cli->cli_inst_s+k)->weight_list));
+				INIT_LIST_HEAD(&((cli->cli_inst_s+k)->weight_list));
+				list_del(&((cli_inst+i)->weight_list));
 
 				memcpy(cli_inst+i, cli->cli_inst_s+k, sizeof(proto_client_inst_t));
+
 				INIT_LIST_HEAD(&((cli_inst+i)->disconnected_client_wheel));
+				INIT_LIST_HEAD(&((cli_inst+i)->weight_list));
+				(cli_inst+i)->weight = (cli->cli_inst_s+k)->weight;
+				put_client_inst_2_weight_list(cli_inst+i, cli, 0);
+
 				(cli->cli_inst_s+k)->invalid = 0;
 				if((cli_inst+i)->ptr){
 					(cli_inst+i)->ptr->cli = (cli_inst+i);
@@ -1319,6 +1498,7 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 	}
 
 	for(i = 0; i < cli->num_clients; ++i){
+		list_del(&((cli->cli_inst_s+i)->weight_list));
 		if(!(cli->cli_inst_s+i)->invalid){
 			continue;
 		}

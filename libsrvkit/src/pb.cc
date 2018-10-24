@@ -283,7 +283,7 @@ int serialize_buff_to_send_chain(ev_ptr_t* ptr, coroutine_t* co, int ret_code, c
 	body.set_err_code(ret_code);
 	body.set_ss_req_id(co->ss_req_id);
     body.set_cli_req_id(co->cli_req_id);
-	body.set_cmd((blink::CmdId)co->cmd_id);
+	body.set_cmd(co->cmd_id);
 	body.set_cpu_usage(((worker_thread_t*)(co->worker))->cpu_usage);
 	if(err_msg)body.set_err_msg(err_msg);
 

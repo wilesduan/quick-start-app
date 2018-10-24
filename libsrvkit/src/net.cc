@@ -309,6 +309,8 @@ static int do_recv_from_udp(void* arg)
 	tmp_ptr.tmp = 1;
 	tmp_ptr.fd = ptr->fd;
 	tmp_ptr.arg = worker;
+	inet_ntop(AF_INET, &(addr.sin_addr), tmp_ptr.ip, sizeof(tmp_ptr.ip));
+	tmp_ptr.port = ntohs(addr.sin_port);
 	INIT_LIST_HEAD(&(tmp_ptr.heartbeat_wheel));
 	INIT_LIST_HEAD(&(tmp_ptr.idle_time_wheel));
 	INIT_LIST_HEAD(&(tmp_ptr.co_list));

@@ -1,5 +1,5 @@
-#ifndef __BLINK_UTIL_H__
-#define __BLINK_UTIL_H__
+#ifndef __BILIBILI_IM_UTIL_H__
+#define __BILIBILI_IM_UTIL_H__
 #include <list.h>
 #include <murmur3_hash.h>
 #include <time_util.h>
@@ -43,4 +43,4 @@
 #define VA_COUNT_EX(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, ...) VA_COUNT_EX_EX(__VA_ARGS__)
 #define VA_COUNT_PARAM(...) VA_COUNT_EX(__VA_ARGS__, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
-#endif//__BLINK_UTIL_H__
+#endif//__BILIBILI_IM_UTIL_H__

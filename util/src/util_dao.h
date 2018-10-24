@@ -25,7 +25,7 @@
 
 // Malloc sql str
 #define MALLOC_SQL_STR(t, e)																				\
-    char t[2048] = ""; \
+    char t[40960] = ""; \
 	if (NULL == t) {																						\
 		return e;																							\
 	}
@@ -109,6 +109,9 @@ typedef struct STRUCT_NAME {
     // The get conn id callback function
     CI_CB ci_cb;
 
+    // spec mysql id
+    const char* mysql_id = "write";
+
 // Define all field
 #define __S_FIELD__(t, n, issk, mf)	\
 		t n; \
@@ -139,7 +142,8 @@ typedef struct STRUCT_NAME {
 		uint64_t uid = user_ctx->uid;
 
 		// Get mysql connect
-		GET_MYSQL_CONN(mysql_connect, error_code, "write");
+        LOG_DBG("mysql_id: %s", mysql_id);
+		GET_MYSQL_CONN(mysql_connect, error_code, mysql_id);
 
 		MALLOC_SQL_STR(sql_str, error_code);
 
@@ -211,7 +215,8 @@ typedef struct STRUCT_NAME {
 		uint64_t uid = user_ctx->uid;
 
 		// Get mysql connect
-		GET_MYSQL_CONN(mysql_connect, error_code, "write");
+        LOG_DBG("mysql_id: %s", mysql_id);
+		GET_MYSQL_CONN(mysql_connect, error_code, mysql_id);
 
 		MALLOC_SQL_STR(sql_str, error_code);
 
@@ -254,6 +259,12 @@ typedef struct STRUCT_NAME {
 		UPDATE_STR_KEY
 #undef __UPDATE_KEY__
 #endif
+
+		if (NULL != ext_select)
+		{
+			strcat(sql_str, " ");
+			strcat(sql_str, ext_select);
+		}
 
 		LOG_DBG("[update]sql_str: %s", sql_str);
 
@@ -350,7 +361,8 @@ typedef struct STRUCT_NAME {
 		uint64_t uid = user_ctx->uid;
 
 		// Get mysql connect
-		GET_MYSQL_CONN(mysql_connect, error_code, "read");
+        LOG_DBG("mysql_id: %s", mysql_id);
+		GET_MYSQL_CONN(mysql_connect, error_code, mysql_id);
 
 		MALLOC_SQL_STR(sql_str, error_code);
 
@@ -500,7 +512,8 @@ typedef struct STRUCT_NAME {
 		uint64_t uid = user_ctx->uid;
 
 		// Get mysql connect
-		GET_MYSQL_CONN(mysql_connect, error_code, "write");
+        LOG_DBG("mysql_id: %s", mysql_id);
+		GET_MYSQL_CONN(mysql_connect, error_code, mysql_id);
 
 		MALLOC_SQL_STR(sql_str, error_code);
 

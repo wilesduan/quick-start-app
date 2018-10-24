@@ -53,7 +53,7 @@ Example:
         "uri":"/dynamic_svr/v1/dynamic_svr/dynamic_num",
         "protocol":"HTTP/1.1",
         "header":{
-            "Host":"api.vc.blink.com",
+            "Host":"api.vc.bilibili.com",
             "X-Real-Ip":"36.149.215.250",
             "X-Forwarded-For":"112.25.54.211",
             "X-Track-Id":"1528339310273735539182",
@@ -68,7 +68,7 @@ Example:
             "X-Scheme":"https",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
             "Accept":"* / *",
-            "Referer":"https://www.blink.com/video/av24300492/?spm_id_from=333.9.technology_fun.23",
+            "Referer":"https://www.bilibili.com/video/av24300492/?spm_id_from=333.9.technology_fun.23",
             "Accept-Language":"zh-CN,zh;q=0.8"
         },
         "cookie":{

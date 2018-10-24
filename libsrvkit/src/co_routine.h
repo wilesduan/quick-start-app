@@ -12,12 +12,14 @@ typedef int (*fn_co_routine)(void* arg1, void* arg2);
 typedef void (*fn_co_recycle)(void* recycler, coroutine_t* co);
 
 #define K_IP_LEN 16
+#define K_PLATFORM_LEN 16
 typedef struct userctx_t
 {
 	uint64_t uid;
 	char cli_ip[K_IP_LEN];
 	char conn_ip[K_IP_LEN];
 	unsigned short conn_port;
+	char platform[K_PLATFORM_LEN];
 	int dev_type;
 	uint64_t ss_trace_id;
 	char ss_trace_id_s[32];

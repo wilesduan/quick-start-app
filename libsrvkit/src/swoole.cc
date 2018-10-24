@@ -240,6 +240,13 @@ int do_process_swoole_request(worker_thread_t* worker, ev_ptr_t* ptr, swoole_hea
 		req_co->uctx.cli_ip[0] = 0;
 	}
 
+	if(sw_header.has_platform() && sw_header.platform().size()){
+		strncpy(req_co->uctx.platform, sw_header.platform().data(), sizeof(req_co->uctx.platform));
+		((blink::UserContext*)(req_co->proto_user_ctx))->set_platform(sw_header.platform());
+	}else{
+		req_co->uctx.platform[0] = 0;
+	}
+
 	INIT_LIST_HEAD(&req_co->ptr_list);
 	list_add(&req_co->ptr_list, &ptr->co_list);
 
@@ -604,6 +611,9 @@ static int write_req_2_swoole_server(ev_ptr_t* ptr, coroutine_t* co, uint32_t ss
 	header.set_need_trace(co->need_trace_point);
 	if(uctx){
 		header.set_user_ip(uctx->cli_ip());
+		if(uctx->platform().size()){
+			header.set_platform(uctx->platform());
+		}
 	}
 
 	json_object* js = json_object_new_object();

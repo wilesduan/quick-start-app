@@ -23,6 +23,8 @@
 #include <sched_cpu_affinity.h>
 #include "util_logger.h"
 #include "time_util.h"
+#include <google/protobuf/stubs/common.h> 
+#include "string_tools.h"
 
 #define K_MAX_INT_VALUE 0x7FFFFFFF
 #define K_MONITOR_ACC K_MAX_INT_VALUE-1
@@ -100,8 +102,20 @@ static void init_log_thread(util_log_thread_t* log_thread)
 	log_thread->out = 0;
 }
 
+static void pb_log_handler(::google::protobuf::LogLevel level, const char* filename, 
+		int line, const std::string& message)
+{
+	if(level != ::google::protobuf::LOGLEVEL_ERROR || level != ::google::protobuf::LOGLEVEL_FATAL){
+		return;
+	}
+
+	util_write_log(LEVEL_LOG_ERROR, filename, line, "protobuf", message.data());
+}
+
 int util_init_bim_logger(const char* appname, json_object* conf)
 {
+	::google::protobuf::SetLogHandler(pb_log_handler);
+
 	g_time_now = time(NULL);
 	g_bim_logger = (util_bim_logger_t*)calloc(1, sizeof(util_bim_logger_t));
 	g_bim_logger->appname = (NULL==appname)?NULL:strdup(appname);
@@ -713,7 +727,7 @@ static void* util_logger_routine(void* arg)
 		pthread_mutex_unlock(&log_thread->mutex);
 		//pthread_spin_unlock(&log_thread->spinlock);
 
-		if(!log || log->magic != K_LOG_BUFF_MAGIC){
+		if(!log || log->magic != (int)K_LOG_BUFF_MAGIC){
 			continue;
 		}
 
@@ -773,7 +787,8 @@ static bool check_logging_2_elk(en_log_level level, const char* fmt)
 {
 	if(g_bim_logger->unix_sock_alarm_fd > 0) {
 		if((level == LEVEL_LOG_ERROR && fmt[0] == '[' && strstr(fmt, ALARM_HARD_BYTES))
-			|| (level == LEVEL_LOG_INFO && !strncmp(fmt, NOTICE_HARD_BYTES, strlen(NOTICE_HARD_BYTES)))) {
+			|| (level == LEVEL_LOG_INFO && !strncmp(fmt, NOTICE_HARD_BYTES, strlen(NOTICE_HARD_BYTES)))
+			|| (level == LEVEL_LOG_INFO && strstr(fmt, "ev_name") != NULL)) {
 			return true;
 		}
 	}
@@ -895,7 +910,7 @@ void util_write_log(en_log_level level, const char* file, int line_num, const ch
 	va_start(args, fmt);
 	len += vsnprintf(log->content+len, K_LOG_LINE_SIZE-sizeof(util_log_t)-len-1, fmt, args);
 	va_end(args);
-	if(len > K_LOG_LINE_SIZE - sizeof(util_log_t)-1){
+	if(len > (int)(K_LOG_LINE_SIZE - sizeof(util_log_t)-1)){
 		len = K_LOG_LINE_SIZE - sizeof(util_log_t)-1;
 	}
 	log->content[len] = 0;
@@ -949,6 +964,44 @@ static void send_alarm_to_elk(int level, char* sz_log)
 		}
 	}
 	else if(level == LEVEL_LOG_INFO) {
+
+		char* ev_start = strstr(sz_log, "ev_name");
+		if (ev_start != NULL)//如果字符串中有ev_name则走事件上报
+		{
+			std::vector<std::string> field_values;
+			implode(ev_start, "|", field_values);
+			for (size_t i = 0; i < field_values.size(); ++i)
+			{
+				std::vector<std::string> field_value;	
+				implode(field_values[i], ":", field_value);
+				if (field_value.size() == 2)
+				{
+					int64_t i_val = 0;
+					double d_val = 0.0;
+					json_object* p_obj = NULL;
+					switch (parse_num(field_value[1].c_str(), i_val, d_val))
+					{
+					case 0:
+						p_obj = json_object_new_int64(i_val);
+						break;
+					case 1:
+						p_obj = json_object_new_double(d_val);
+						break;
+					default:	
+						p_obj = json_object_new_string(field_value[1].c_str());
+						break;
+					}
+					
+					json_object_object_add(root, field_value[0].c_str(), p_obj);
+				}
+			}
+			
+			util_send_to_elk(level, "event", root);
+			json_object_put(root);
+			
+			return;
+		}
+		
 		unsigned int cost = 0;
 		char method[32] = {0};
 		int params_offset = 0;
@@ -1034,7 +1087,7 @@ static void write_monitor(int type, const char* key, int value)
 
 	time_t now = time(NULL);
 	std::map<std::string, int>& m_monitor = *(monitor->monitor);
-	if(g_bim_logger->fn_updload && now - monitor->last_upload >= 60){
+	if(g_bim_logger->fn_updload && now - monitor->last_upload >= 10){
 		(g_bim_logger->fn_updload)(g_bim_logger->monitor_udp_fd, (struct sockaddr*)&g_monitor_server_addr, sizeof(g_monitor_server_addr), g_bim_logger->appname, m_monitor);
 		m_monitor.clear();
 		monitor->last_upload = now;

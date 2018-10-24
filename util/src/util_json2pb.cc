@@ -73,6 +73,16 @@ static json_object* _field2json(const Message* msg, const FieldDescriptor *field
 				ref->GetRepeatedMessage(*msg, field, index):
 				ref->GetMessage(*msg, field);
 			jf = _pb2json(&mf);
+			if(!jf){
+				break;
+			}
+
+			lh_table* table = json_object_get_object(jf);
+			lh_entry* entry = table?table->head:NULL;
+			if(!entry){
+				json_object_put(jf);
+				jf = NULL;
+			}
 			break;
 		}
 		case FieldDescriptor::CPPTYPE_ENUM: {
@@ -206,12 +216,12 @@ static int _json2field(Message* msg, const FieldDescriptor *field, json_object* 
 		case FieldDescriptor::CPPTYPE_DOUBLE:
 		{
 			double value = 0;
-			if(json_object_get_type(jf) == json_type_string){
+			if(json_object_get_type(jf) == json_type_double){
+				value = json_object_get_double(jf);
+                _SET_OR_ADD(SetDouble, AddDouble, value);
+			}else{
 				const char* str = json_object_get_string(jf);
 				value = strtod(str, NULL);
-                _SET_OR_ADD(SetDouble, AddDouble, value);
-			}else if(json_object_get_type(jf) == json_type_double){
-				value = json_object_get_double(jf);
                 _SET_OR_ADD(SetDouble, AddDouble, value);
 			}
 			break;
@@ -220,12 +230,12 @@ static int _json2field(Message* msg, const FieldDescriptor *field, json_object* 
 		case FieldDescriptor::CPPTYPE_FLOAT:
 		{
 			float value = 0;
-			if(json_object_get_type(jf) == json_type_string){
+			if(json_object_get_type(jf) == json_type_double){
+				value = json_object_get_double(jf);
+                _SET_OR_ADD(SetFloat, AddFloat, value);
+			}else{
 				const char* str = json_object_get_string(jf);
 				value = strtof(str, NULL);
-                _SET_OR_ADD(SetFloat, AddFloat, value);
-			}else if(json_object_get_type(jf) == json_type_double){
-				value = json_object_get_double(jf);
                 _SET_OR_ADD(SetFloat, AddFloat, value);
 			}
 			break;

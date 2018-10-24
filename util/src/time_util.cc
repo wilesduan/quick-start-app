@@ -58,3 +58,13 @@ uint64_t get_milli_second()
 	return tv.tv_sec*1000+tv.tv_usec/1000;
 }
 
+uint64_t get_monotonic_milli_second()
+{
+	struct timespec ts;
+	int rc = clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+	if(rc){
+		return 0;
+	}
+
+	return ts.tv_sec*1000 + ts.tv_nsec/1000000;
+}

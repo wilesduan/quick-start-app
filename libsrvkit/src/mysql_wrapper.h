@@ -44,6 +44,7 @@ typedef struct mysql_inst_t
 	mysql_conn_inst_t* conn_inst;
 	char* charset;
 	int flag;
+    uint64_t uts;
 }mysql_inst_t;
 
 typedef struct mysql_wrapper_t

@@ -70,6 +70,11 @@ static circuit_breaker_tick_t* switch_circuit_breaker_state(circuit_breaker_t* b
 	time_t now;
 	time(&now);
 	LOG_DBG("BEFORE SWITCH. now:%llu strategy:%d:%d:%d state:%d:%d:%d:%d data:%llu:%d:%d", now, breaker->window_size, breaker->failure_threshold, breaker->half_open_ratio, breaker->state, breaker->window_start, breaker->last_tick, breaker->num_ticks, breaker->last_ts, breaker->failure, breaker->total_access);
+	if(now < breaker->window_ts){
+		LOG_ERR("time roll back. %llu:%llu", now, breaker->window_ts);
+		reset_circuit_breaker(breaker, now);
+	}
+
 	int interval = now - breaker->window_ts;
 	while(interval >= breaker->window_size){
 		if(interval >= 3*breaker->window_size || interval >= breaker->num_ticks){

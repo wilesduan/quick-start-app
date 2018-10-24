@@ -127,6 +127,9 @@ int init_wrapper_with_config(mysql_wrapper_t* wrapper, json_object* conf)
 		json_object* js_max_pending = NULL;
 		json_object_object_get_ex(js_host, "pending", &js_max_pending);
 
+		json_object* js_uts = NULL;
+		json_object_object_get_ex(js_host, "uts", &js_uts);
+
 		json_object* js_dbname = NULL;
 		json_object_object_get_ex(js_host, "dbname", &js_dbname);
 		if(NULL == js_user || NULL == js_passwd || NULL == js_ip || NULL == js_port || NULL == js_dbname){
@@ -139,6 +142,7 @@ int init_wrapper_with_config(mysql_wrapper_t* wrapper, json_object* conf)
 		inst->id = js_id?strdup(json_object_get_string(js_id)):NULL;
 		inst->dbname = strdup(json_object_get_string(js_dbname));
 		inst->charset = js_charset?strdup(json_object_get_string(js_charset)):NULL;
+        inst->uts = js_uts?json_object_get_int64(js_uts):0;
 
 		const char* host = json_object_get_string(js_ip);
 		int port = json_object_get_int(js_port);

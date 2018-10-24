@@ -2,6 +2,7 @@
 #include <server_inner.h>
 #include <co_routine.h>
 
+#define AUTO_COREDUMP  usleep(10000); *((int*)0) = 0;
 static void init_time_wheel_core(time_wheel_core_t* time_wheel_core, int max_second, fn_timer_cb cb)
 {
 	time_wheel_core->second_wheel = (list_head*)calloc(max_second, sizeof(list_head));
@@ -20,7 +21,7 @@ void init_timers(time_wheel_t* timers, fn_timer_cb co_timeout_cb, fn_timer_cb he
 		fn_timer_cb idle_timeout_cb, fn_timer_cb disconnect_timeout_cb)
 {
 	int wheel_num = K_MAX_TIMEOUT+10;
-	timers->meta.start_time = get_milli_second();
+	timers->meta.start_time = get_monotonic_milli_second();
 	timers->meta.last_check_time = timers->meta.start_time;
 	timers->meta.cur_second_idx= 0;
 	timers->meta.cur_milli_second_idx= 0;
@@ -36,7 +37,7 @@ void init_timers(time_wheel_t* timers, fn_timer_cb co_timeout_cb, fn_timer_cb he
 
 void run_timers(time_wheel_t* timers)
 {
-	timers->meta.start_time = get_milli_second();
+	timers->meta.start_time = get_monotonic_milli_second();
 	timers->meta.last_check_time = timers->meta.start_time;
 	timers->meta.cur_second_idx= 0;
 	timers->meta.cur_milli_second_idx= 0;
@@ -66,14 +67,20 @@ static bool is_bit_set(char* bit, int milli_offset)
 
 static list_head* get_time_wheel_list(time_wheel_meta_t* meta, time_wheel_core_t* wheel, int interval, int* milli_second_in_1s)
 {
-	if(!interval) interval = 1;
-	uint64_t now = get_milli_second();
+	uint64_t now = get_monotonic_milli_second();
 
 	//修改系统时间导致
-	if(now < meta->last_check_time || now > meta->last_check_time+meta->max_second*1000){
-		meta->last_check_time = now;
-		meta->start_time = now;
+	if(now + 1000 < meta->last_check_time || now > meta->last_check_time+meta->max_second*1000){
+		LOG_ERR("###FATAL#### change start time.last_check_time:%llu, now:%llu", meta->last_check_time, now);
+		AUTO_COREDUMP;
+		return NULL;
 	}
+
+	if(now < meta->last_check_time){
+		interval += (meta->last_check_time-now);
+	}
+
+	if(interval <= 0) interval = 1;
 
 	uint64_t offset = meta->started?(now-meta->start_time+interval):interval;
 	int milli_offset = offset%1000;
@@ -100,11 +107,12 @@ static list_head* get_time_wheel_list(time_wheel_meta_t* meta, time_wheel_core_t
 
 void add_timeout_event_2_timer(time_wheel_t* wheel, int interval, list_head* p, int* milli_second_in_1s)
 {
-	LOG_DBG("add timeout event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_milli_second()+interval);
+	//LOG_DBG("add timeout event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_monotonic_milli_second()+interval);
 	list_del(p);
 	INIT_LIST_HEAD(p);
 
 	list_head* list = get_time_wheel_list(&(wheel->meta), &(wheel->req_co_timeout_wheel), interval, milli_second_in_1s);
+	if(!list)return;
 	list_add(p, list);
 }
 
@@ -137,8 +145,9 @@ void add_heartbeat_event_2_timer(time_wheel_t* wheel, int interval, list_head* p
 {
 	list_del(p);
 	INIT_LIST_HEAD(p);
-	LOG_DBG("add heartbeat event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_milli_second()+interval);
+	//LOG_DBG("add heartbeat event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_monotonic_milli_second()+interval);
 	list_head* list = get_time_wheel_list(&(wheel->meta), &(wheel->heartbeat_wheel), interval, milli_second_in_1s);
+	if(!list)return;
 	list_add(p, list);
 }
 
@@ -157,9 +166,10 @@ void add_idle_event_2_timer(time_wheel_t* wheel, int interval, list_head* p, int
 	list_del(p);
 	INIT_LIST_HEAD(p);
 	list_head* list = get_time_wheel_list(&(wheel->meta), &(wheel->idle_time_wheel), interval, milli_second_in_1s);
+	if(!list)return;
 	list_add(p, list);
 
-	LOG_DBG("add idle event. interval:%d, node:%llu, fire time:%llu, offset:%", interval, (unsigned long long)(p), get_milli_second()+interval);
+	//LOG_DBG("add idle event. interval:%d, node:%llu, fire time:%llu, offset:%", interval, (unsigned long long)(p), get_monotonic_milli_second()+interval);
 }
 
 void del_idle_event_from_timer(time_wheel_t* wheel, list_head* p)
@@ -174,10 +184,11 @@ void del_idle_event_from_timer(time_wheel_t* wheel, list_head* p)
 
 void add_disconnect_event_2_timer(time_wheel_t* wheel, int interval, list_head* p, int* milli_second_in_1s)
 {
-	LOG_DBG("add disconnect event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_milli_second()+interval);
+	//LOG_DBG("add disconnect event. interval:%d, node:%llu, fire time:%llu", interval, (unsigned long long)(p), get_monotonic_milli_second()+interval);
 	list_del(p);
 	INIT_LIST_HEAD(p);
 	list_head* list = get_time_wheel_list(&(wheel->meta), &(wheel->disconnected_client_wheel), interval, milli_second_in_1s);
+	if(!list)return;
 	list_add(p, list);
 }
 
@@ -300,7 +311,7 @@ loop:
 int get_next_timeout(time_wheel_t* timers)
 {
 	int next = get_next_nonzero_offset(timers->meta.bit, timers->meta.cur_milli_second_idx, 1000);
-	uint64_t now = get_milli_second();
+	uint64_t now = get_monotonic_milli_second();
 	if(now > timers->meta.last_check_time + next){
 		return 0;
 	}
@@ -310,12 +321,17 @@ int get_next_timeout(time_wheel_t* timers)
 
 void do_check_timer_v2(worker_thread_t* worker)
 {
-	uint64_t now = get_milli_second();
+	uint64_t now = get_monotonic_milli_second();
 	time_wheel_t* timers = &worker->timers;
+	if(now < timers->meta.last_check_time && now + 1000 > timers->meta.last_check_time){
+		return;
+	}
+
 	//修改系统时间导致
-	if(now < timers->meta.last_check_time || now > timers->meta.last_check_time+timers->meta.max_second*1000){
-		timers->meta.last_check_time = now;
-		timers->meta.start_time = now;
+	if(now + 1000 < timers->meta.last_check_time || now > timers->meta.last_check_time+timers->meta.max_second*1000){
+		LOG_ERR("###FATAL#### change start time.last_check_time:%llu, now:%llu", timers->meta.last_check_time, now);
+		AUTO_COREDUMP;
+		return;
 	}
 
 	int i = timers->meta.cur_milli_second_idx;

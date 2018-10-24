@@ -221,6 +221,7 @@ static void save_co_body(coroutine_t* co, const blink::MsgBody& body)
 		strncpy(co->uctx.cli_ip, body.uctx().cli_ip().c_str(), sizeof(co->uctx.cli_ip));
 		strncpy(co->uctx.conn_ip, body.uctx().conn_ip().c_str(), sizeof(co->uctx.conn_ip));
 		co->uctx.conn_port = (unsigned short)body.uctx().conn_port();
+		strncpy(co->uctx.platform, body.uctx().platform().c_str(), sizeof(co->uctx.platform));
 		co->uctx.dev_type = body.uctx().dev_type();
 		co->uctx.dev_crc32 = body.uctx().dev_crc32();
 		co->uctx.flag_test = body.uctx().flag_test();
@@ -237,7 +238,7 @@ static void save_co_body(coroutine_t* co, const blink::MsgBody& body)
 		snprintf(co->uctx.ss_trace_id_s, sizeof(co->uctx.ss_trace_id_s) - 1, "%" PRIu64, co->uctx.ss_trace_id);
 	}
 
-	LOG_DBG("uid:%llu, cli_ip:%s conn_ip:%s conn_port:%d dev_type:%d, traceid:%s", co->uctx.uid, co->uctx.cli_ip, co->uctx.conn_ip, co->uctx.conn_port, co->uctx.dev_type, co->uctx.ss_trace_id_s);
+	LOG_DBG("uid:%llu, cli_ip:%s platform:%s conn_ip:%s conn_port:%d dev_type:%d, traceid:%s", co->uctx.uid, co->uctx.cli_ip, co->uctx.platform, co->uctx.conn_ip, co->uctx.conn_port, co->uctx.dev_type, co->uctx.ss_trace_id_s);
 }
 
 void async_pb_heartbeat(worker_thread_t* worker, ev_ptr_t* ptr)
@@ -276,7 +277,7 @@ int serialize_buff_to_send_chain(ev_ptr_t* ptr, coroutine_t* co, int ret_code, c
 	body.set_err_code(ret_code);
 	body.set_ss_req_id(co->ss_req_id);
     body.set_cli_req_id(co->cli_req_id);
-	body.set_cmd(co->cmd_id);
+	body.set_cmd((blink::CmdId)co->cmd_id);
 	if(err_msg)body.set_err_msg(err_msg);
 
 	if(co->proto_user_ctx && ptr && ptr->listen && (!(((listen_t*)ptr->listen)->tag&1))){
@@ -331,6 +332,7 @@ static void set_user_ctx(coroutine_t* co, blink::MsgBody* body)
 	ctx->set_uid(co->uctx.uid);
 	ctx->set_cli_ip(co->uctx.cli_ip);
 	ctx->set_conn_ip(co->uctx.conn_ip);
+	ctx->set_platform(co->uctx.platform);
 	ctx->set_conn_port(co->uctx.conn_port);
 	ctx->set_dev_type(co->uctx.dev_type);
 	ctx->set_ss_trace_id(co->uctx.ss_trace_id);

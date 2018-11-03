@@ -677,7 +677,9 @@ void end_redis_pipeline(rpc_ctx_t* ctx)
 		return;
 	}
 
-	while(get_pipeline_reply(ctx));
+	while(!list_empty(&(ctx->redis_cmds.cmds))){
+		get_pipeline_reply(ctx);
+	}
 
 	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
 	free_redis_replys(&worker->redis);

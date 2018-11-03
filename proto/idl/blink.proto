@@ -1,4 +1,4 @@
-//option java_package = "com.bilibili.im.protobuf";
+//option java_package = "com.blink.protobuf";
 //option java_outer_classname = "MainProtoBuf";
 //option optimize_for = CODE_SIZE;
 

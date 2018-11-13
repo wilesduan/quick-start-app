@@ -35,7 +35,6 @@
 		gettimeofday(&macro_end_val, NULL);\
 		int milli_cost = 1000*(macro_end_val.tv_sec-macro_start_val.tv_sec) +(macro_end_val.tv_usec-macro_start_val.tv_usec)/1000;\
 		LOG_INFO("call %s:%s, trace_id:%s, cost:%llu ms", servicename, method,traceid, milli_cost); \
-		add_trace_point(ctx, servicename, method, __FILE__, milli_cost);\
 		}
 
 

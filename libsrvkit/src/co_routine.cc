@@ -378,6 +378,7 @@ void begin_batch_request(coroutine_t* co)
 	co->timeout = 0;
 	co->batch_mode = 1;
 	co->rpc_info.start_time = get_milli_second();
+	add_batch_trace_point(co);
 }
 
 void end_batch_request(coroutine_t* co)
@@ -385,6 +386,8 @@ void end_batch_request(coroutine_t* co)
 	if(!is_co_in_batch_mode(co)){
 		return;
 	}
+
+	fill_batch_trace_point_cost(co);
 
 	if(list_empty(&co->batch_rslt_list)){
 		co->batch_mode = 0;

@@ -19,6 +19,7 @@
 #include <sys/epoll.h>
 #include <monitor_func.h>
 #include <kafka.h>
+#include <http_client.h>
 
 #include <algorithm>
 
@@ -70,6 +71,7 @@ char g_start_time[128];
 int g_exit_status = 0;
 extern int g_sync_call_redis;
 extern int g_stop_zk_thread;
+int g_log_trace_point = 0;
 
 void usage(char* app)
 {
@@ -207,6 +209,10 @@ static int init_server(server_t* server)
 			g_app_name = strdup(name);
 		}
 	}
+
+	json_object* trace = NULL;
+	json_object_object_get_ex(server->config, "trace", &trace);
+	g_log_trace_point = trace?json_object_get_int(trace):0;
 
 	init_logger(log_conf);
 	util_run_logger();
@@ -506,6 +512,7 @@ static void run_child(server_t* server)
 			worker->custom_data = (worker->wt_fns.do_alloc_data)(worker);
 		}
 
+		run_http_client(worker->hc);
 		pthread_create(&(worker->ptid), NULL, run_worker, worker);
 	}
 
@@ -774,6 +781,12 @@ static int fn_on_recv_msg_from_pipe(void* arg)
 					async_fin_redis_execute(ctx);
 				}
 				break;
+			case K_CMD_NOTIFY_ASYNC_HTTP_FIN:
+				{
+					rpc_ctx_t* ctx = (rpc_ctx_t*)cmd.arg;
+					async_fin_http_request(ctx);
+				}
+				break;
 			default:
 				if(worker->wt_fns.do_recv_notify){
 					(worker->wt_fns.do_recv_notify)(worker, cmd);
@@ -868,6 +881,7 @@ static int init_wt(worker_thread_t* wt, json_object* config)
 		}
 	}
 
+	wt->hc = malloc_http_client();
 	return 0;
 }
 

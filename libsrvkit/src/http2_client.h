@@ -10,7 +10,6 @@ typedef struct http2_payload_t
 }http2_payload_t;
 
 int http2_ssl_connect(worker_thread_t* worker, proto_client_inst_t* cli, int fd);
-//int do_read_msg_from_http2(void* arg);
 
 int http2_submit_request(worker_thread_t* worker, const char* service, nghttp2_nv* nva, size_t sz, http2_payload_t* payload);
 int async_http2_heartbeat(worker_thread_t* worker, ev_ptr_t* ptr);

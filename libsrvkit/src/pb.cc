@@ -38,6 +38,7 @@ int process_pb_request(ev_ptr_t* ptr, const blink::MsgBody& body)
 	init_proto_uctx((blink::UserContext*)(req_co->proto_user_ctx));
 	if(body.has_uctx()){
 		((blink::UserContext*)(req_co->proto_user_ctx))->CopyFrom(body.uctx());
+		((blink::UserContext*)(req_co->proto_user_ctx))->clear_trace_points();
 	}
 
 	INIT_LIST_HEAD(&req_co->ptr_list);
@@ -105,6 +106,7 @@ static int process_pb_response(ev_ptr_t* ptr, const blink::MsgBody& body)
 		}
 
 		mc_collect(worker, &rslt->rpc_info, milli_cost, body.err_code(), 1, req_co->uctx.ss_trace_id_s);
+		append_trace_point(req_co, &rslt->rpc_info, &body.uctx(), body.err_code());
 
 		rslt->finish = 1;
 		rslt->sys_code = body.err_code();
@@ -125,10 +127,7 @@ static int process_pb_response(ev_ptr_t* ptr, const blink::MsgBody& body)
 		}
 	}else{
 		mc_collect(worker, &req_co->rpc_info, milli_cost, body.err_code(), 0, req_co->uctx.ss_trace_id_s);
-	}
-
-	if(body.has_uctx() && req_co->proto_user_ctx){
-		((blink::UserContext*)(req_co->proto_user_ctx))->CopyFrom(body.uctx());
+		append_trace_point(req_co, &req_co->rpc_info, &body.uctx(), body.err_code());
 	}
 
 	do_fin_request(req_co);
@@ -333,8 +332,8 @@ static void set_user_ctx(coroutine_t* co, blink::MsgBody* body)
 	if(!co || !body)return;
 
 	blink::UserContext* ctx = body->mutable_uctx();
-	if(co->proto_user_ctx)
-		ctx->CopyFrom(*((blink::UserContext*)(co->proto_user_ctx)));
+	//if(co->proto_user_ctx)
+		//ctx->CopyFrom(*((blink::UserContext*)(co->proto_user_ctx)));
 
 	ctx->set_uid(co->uctx.uid);
 	ctx->set_cli_ip(co->uctx.cli_ip);

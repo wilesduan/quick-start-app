@@ -208,11 +208,22 @@ void cancel_write_ev(int epoll_fd, ev_ptr_t* ptr)
 	epoll_ctl(epoll_fd, op, ptr->fd, &ev);
 }
 
+void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code)
+{
+	blink::TracePoint* p = usr_ctx->add_trace_points();
+	p->set_service(info->service);
+	p->set_method(info->method);
+	p->set_ip(info->ip);
+	p->set_milli_cost(cost);
+	p->set_err_code(err_code);
+}
+
 void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 {
 	list_del(node);
 	INIT_LIST_HEAD(node);
 
+	blink::UserContext user_ctx;
 	coroutine_t* co = list_entry(node, coroutine_t, req_co_timeout_wheel);
 	LOG_ERR("request is timeout.worker:%llu, traceid:%s, ss_req_id:%llu", (long long unsigned)worker, co->uctx.ss_trace_id_s, co->cache_req_id);
 	if(is_co_in_batch_mode(co)){
@@ -224,6 +235,8 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 			}
 
 			mc_collect(worker, &rslt->rpc_info, 5000, -2, 1, co->uctx.ss_trace_id_s);
+			init_user_context(&user_ctx, &rslt->rpc_info, 5000, blink::EN_MSG_RET_TIMEOUT);
+			append_trace_point(co, &rslt->rpc_info, &user_ctx, blink::EN_MSG_RET_TIMEOUT);
 
 			util_del_item(worker->co_cache, &(rslt->req_id), sizeof(rslt->req_id));
 			ev_ptr_t* ptr = (ev_ptr_t*)(rslt->ptr);
@@ -242,7 +255,10 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 		co_free_batch_rslt_list(co);
 	}else{
 		mc_collect(worker, &co->rpc_info, co->timeout, -2, 0, co->uctx.ss_trace_id_s);
+		init_user_context(&user_ctx, &co->rpc_info, co->timeout, blink::EN_MSG_RET_TIMEOUT);
+		append_trace_point(co, &co->rpc_info, &user_ctx, blink::EN_MSG_RET_TIMEOUT);
 		proto_client_t* client = get_clients_by_service(worker, co->rpc_info.service);
+
 		for(size_t i = 0; client && i < client->num_clients; ++i){
 			proto_client_inst_t* inst = client->cli_inst_s + i;
 			if(inst->ptr == co->async_cli_ptr){

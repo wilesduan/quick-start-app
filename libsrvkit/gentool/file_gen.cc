@@ -608,6 +608,7 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 		fprintf(fp, "\tctx.ptr= ptr;\n");
 		fprintf(fp, "\tctx.co = co;\n");
 
+		fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", \"\", 0);\n", service->name, method.name);
 		fprintf(fp, "\tbool parse = %s->ParseFromArray(co->params, co->size);\n", method.req->name);
 		fprintf(fp, "\tif(!parse){\n\t\tLOG_ERR(\"[%s][%s]failed to parse request %s, trace_id:%%s uid:%%llu\", co->uctx.ss_trace_id_s, co->uctx.uid);\n", service->name, method.name, method.req->name);
 		if(method.rsp){
@@ -619,29 +620,24 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 		fprintf(fp, "\n\n\tMONITOR_ACC(\"qpm_pb_%s\", 1);", method.name);
 		if(method.rsp){
 			fprintf(fp, "\n");
-			fprintf(fp, "\tstd::string req_str, rsp_str;\n");
 			fprintf(fp, "\tstruct timeval start_tv, end_tv;\n");
-			fprintf(fp, "\tutil_pb2json(%s, req_str);\n", method.req->name);
 			fprintf(fp, "\tgettimeofday(&start_tv,NULL);\n");
 			fprintf(fp, "\tint rc = do_%s_%s_%s(&ctx, %s, %s);\n", proto->package, service->name, method.name, method.req->name, method.rsp->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\tutil_pb2json(%s, rsp_str);\n", method.rsp->name);
-			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|%%d|%%llu|%%d|%%u][%%s][%%s]\", co->uctx.ss_trace_id_s, cost, rc, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), req_str.c_str(), rsp_str.c_str());\n", service->name, method.name);
-			fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", __FILE__, cost);\n", service->name, method.name);
+			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|%%d|%%llu|%%d|%%u][%%s][%%s]\", co->uctx.ss_trace_id_s, cost, rc, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data(), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name, method.rsp->name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost, rc);\n", service->name, method.name);
 			fprintf(fp, "\tack_req_with_rsp(ptr, co, rc, %s);\n", method.rsp->name);
 			fprintf(fp, "\tdelete %s;\n", method.rsp->name);
 		}else{
 			fprintf(fp, "\n");
-			fprintf(fp, "\tstd::string req_str;\n");
-			fprintf(fp, "\tutil_pb2json(%s, req_str);\n", method.req->name);
 			fprintf(fp, "\n\tstruct timeval start_tv, end_tv;\n");
 			fprintf(fp, "\tgettimeofday(&start_tv,NULL);\n");
 			fprintf(fp, "\tdo_%s_%s_%s(&ctx, %s);\n", proto->package, service->name, method.name, method.req->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", __FILE__, cost);\n", service->name, method.name);
-			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), req_str.c_str());\n", service->name, method.name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost, 0);\n", service->name, method.name);
+			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name);
 		}
 		fprintf(fp, "\tdelete %s;\n", method.req->name);
 		fprintf(fp, "\treturn 0;\n}\n\n");
@@ -695,6 +691,7 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 		fprintf(fp, "\tctx.ptr= ptr;\n");
 		fprintf(fp, "\tctx.co = co;\n");
 
+		fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", \"\", 0);\n", service->name, method.name);
 		fprintf(fp, "\tint rc = util_parse_pb_from_json(%s, (json_object*)(co->json_swoole_body_body));\n", method.req->name);
 		fprintf(fp, "\tif(rc){\n\t\tLOG_ERR(\"[%s_ALARM][%s]@failed to parse request %s, trace_id:%%s uid:%%llu\", co->uctx.ss_trace_id_s, co->uctx.uid);\n", service->name, method.name, method.req->name);
 		if(method.rsp){
@@ -706,29 +703,24 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 		fprintf(fp, "\n\n\tMONITOR_ACC(\"qpm_swoole_%s\", 1);", method.name);
 		if(method.rsp){
 	        fprintf(fp, "\n");
-			fprintf(fp, "\tstd::string req_str, rsp_str;\n");
 			fprintf(fp, "\tstruct timeval start_tv, end_tv;\n");
-            fprintf(fp, "\tutil_pb2json(%s, req_str);\n", method.req->name);
 			fprintf(fp, "\tgettimeofday(&start_tv,NULL);\n");
 			fprintf(fp, "\trc = do_%s_%s_%s(&ctx, %s, %s);\n", proto->package, service->name, method.name, method.req->name, method.rsp->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\tutil_pb2json(%s, rsp_str);\n", method.rsp->name);
-			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|%%d|%%llu|%%d|%%u][%%s][%%s]\", co->uctx.ss_trace_id_s, cost, rc, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), req_str.c_str(), rsp_str.c_str());\n", service->name, method.name);
-			fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", __FILE__, cost);\n", service->name, method.name);
+			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|%%d|%%llu|%%d|%%u][%%s][%%s]\", co->uctx.ss_trace_id_s, cost, rc, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data(), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name, method.rsp->name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost, rc);\n", service->name, method.name);
 			fprintf(fp, "\tack_req_with_rsp(ptr, co, rc, %s);\n", method.rsp->name);
 			fprintf(fp, "\tdelete %s;\n", method.rsp->name);
 		}else{
 			fprintf(fp, "\n\n");
-			fprintf(fp, "\tstd::string req_str;\n");
-			fprintf(fp, "\tutil_pb2json(%s, req_str);\n", method.req->name);
 			fprintf(fp, "\tstruct timeval start_tv, end_tv;\n");
 			fprintf(fp, "\tgettimeofday(&start_tv,NULL);\n");
 			fprintf(fp, "\tdo_%s_%s_%s(&ctx, %s);\n", proto->package, service->name, method.name, method.req->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), req_str.c_str());\n", service->name, method.name);
-			fprintf(fp, "\tadd_trace_point(&ctx, \"%s\", \"%s\", __FILE__, cost);\n", service->name, method.name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost);\n", service->name, method.name);
+			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name);
 		}
 		fprintf(fp, "\tdelete %s;\n", method.req->name);
 		fprintf(fp, "\treturn 0;\n}\n\n");

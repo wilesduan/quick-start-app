@@ -187,10 +187,10 @@ int process_swoole_request(ev_ptr_t* ptr, swoole_head_t* head, char* body)
 		LOG_DBG("miss http in swoole body");
 	}
 
-	json_object* swoole_ctx = NULL;
-	json_object_object_get_ex(root, "pb_svr", &swoole_ctx);
+	//json_object* swoole_ctx = NULL;
+	//json_object_object_get_ex(root, "pb_svr", &swoole_ctx);
 
-	int rc = do_process_swoole_request(worker, ptr, head, fn, root, header, swoole_body, swoole_http, swoole_ctx);
+	int rc = do_process_swoole_request(worker, ptr, head, fn, root, header, swoole_body, swoole_http, NULL);
 	if(rc){
 		json_object_put(root);
 	}
@@ -297,6 +297,7 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 
 	//std::string err_msg;
 	int cost = 0;
+	blink::UserContext user_ctx;
 	json_object* js_body = json_tokener_parse(body);
 	req_co->json_swoole_response = js_body;
 	if(NULL != js_body){
@@ -318,6 +319,7 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 			req_co->json_swoole_body_data = js_data;
 		}
 
+#if 0
 		json_object* js_pb_svr = NULL;
 		json_object_object_get_ex(js_body, "pb_svr", &js_pb_svr);
 		if(js_pb_svr && req_co->proto_user_ctx){
@@ -326,6 +328,7 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 				((blink::UserContext*)(req_co->proto_user_ctx))->CopyFrom(ctx);
 			}
 		}
+#endif
 
 		json_object* js_extra = NULL;
 		json_object_object_get_ex(js_body, "extra", &js_extra);
@@ -357,6 +360,8 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 			return 0;
 		}
 		mc_collect(worker, &rslt->rpc_info, cost, req_co->sys_code, 1, req_co->uctx.ss_trace_id_s);
+		init_user_context(&user_ctx, &rslt->rpc_info, cost, req_co->sys_code);
+		append_trace_point(req_co, &rslt->rpc_info, &user_ctx, req_co->sys_code);
 
 		rslt->finish = 1;
 		rslt->sys_code = req_co->sys_code;
@@ -383,6 +388,8 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 		}
 	}else{
 		mc_collect(worker, &req_co->rpc_info, cost, req_co->sys_code, 0, req_co->uctx.ss_trace_id_s);
+		init_user_context(&user_ctx, &req_co->rpc_info, cost, req_co->sys_code);
+		append_trace_point(req_co, &req_co->rpc_info, NULL, req_co->sys_code);
 	}
 
 	do_fin_request(req_co);
@@ -407,7 +414,7 @@ int process_swoole_request_from_ev_ptr(ev_ptr_t* ptr)
 	memset(&head, 0, sizeof(head));
 	int rc = 0;
 	std::vector<iovec> iovs;
-	char sz_body[102400];
+	char sz_body[1024000];
 	while(util_get_rd_buff_len(ptr->recv_chain) >= (int)sizeof(head)){
 		iovs.clear();
 		rc = util_get_rd_buff(ptr->recv_chain, sizeof(head), iovs);
@@ -625,15 +632,17 @@ static int write_req_2_swoole_server(ev_ptr_t* ptr, coroutine_t* co, uint32_t ss
 	const char* bh = js_swoole_body_header?json_object_to_json_string(js_swoole_body_header):NULL; 
 	json_object* body_header = bh?json_tokener_parse(bh):util_parse_json_from_pb(&header);
 	json_object* body = (NULL == msg)? NULL:util_parse_json_from_pb(msg);
-	json_object* pb_svr = (NULL == uctx)?NULL:util_parse_json_from_pb(uctx);
+	//json_object* pb_svr = (NULL == uctx)?NULL:util_parse_json_from_pb(uctx);
 	json_object_object_add(js, "header", body_header);
 	if(body){
 		json_object_object_add(js, "body", body);
 	}
 
+#if 0
 	if(pb_svr){
 		json_object_object_add(js, "pb_svr", pb_svr);
 	}
+#endif
 
 	const char* str = json_object_to_json_string(js);
 	int len = strlen(str);

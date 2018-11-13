@@ -31,6 +31,7 @@
 #define K_CMD_NOTIFY_ASYNC_CONN_FIN 3
 #define K_CMD_NOTIFY_ASYNC_DB_ROUTINE_FIN 4
 #define K_CMD_NOTIFY_ASYNC_REDIS_FIN 5
+#define K_CMD_NOTIFY_ASYNC_HTTP_FIN 6
 
 
 //#pragma pack(8)
@@ -307,6 +308,7 @@ typedef struct redis_client_t
 	redis_client_t* redis_4_test;
 }redis_client_t;
 
+struct http_client_t;
 typedef struct worker_thread_t
 {
 	int idx;
@@ -362,6 +364,8 @@ typedef struct worker_thread_t
 	uint64_t num_request;
 	struct rusage last_st;
 	int cpu_usage;
+
+	http_client_t* hc;
 }worker_thread_t;
 
 typedef void* (*fn_pthread_routine)(void*);
@@ -481,6 +485,9 @@ void async_heartbeat(worker_thread_t* worker, ev_ptr_t* ptr);
 void ack_req_with_buff(ev_ptr_t* ptr, coroutine_t* co, int ret_code, const char* buf, size_t size, const char* err_msg = NULL);
 void ack_req_with_rsp(ev_ptr_t* ptr, coroutine_t* co, int ret_code, ::google::protobuf::Message* msg, const char* err_msg = NULL);
 void init_proto_uctx(blink::UserContext* proto_user_ctx);
+void append_trace_point(coroutine_t* co, rpc_info_t* info, const blink::UserContext* recv_ctx, int err_code);
+void add_batch_trace_point(coroutine_t* co);
+void fill_batch_trace_point_cost(coroutine_t* co);
 
 //event.cc
 void add_co_timeout_wheel(worker_thread_t* worker, coroutine_t* co);
@@ -498,6 +505,7 @@ void do_check_heartbeat_timeout(worker_thread_t* worker, list_head* p);
 void do_check_idle_timeout(worker_thread_t* worker, list_head* p);
 void do_check_disconnect_timeout(worker_thread_t* worker, list_head* p);
 ev_ptr_t* get_ev_ptr(worker_thread_t* worker,int fd);
+void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code);
 
 //mysql
 int connect_2_mysql(worker_thread_t* wt, json_object* config);
@@ -555,6 +563,8 @@ int process_http_request_from_ev_ptr(ev_ptr_t* ptr);
 int serialize_http_to_send_chain(ev_ptr_t* ptr, coroutine_t* co, int ret_code, ::google::protobuf::Message* msg, const char* err_msg);
 int ack_http_repsone(ev_ptr_t* ptr, int http_code, const char* code_desc, const char* content_type, const char* content);
 
+//http_client.cc
+void async_fin_http_request(rpc_ctx_t* ctx);
 
 //#pragma pack()
 #endif

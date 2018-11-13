@@ -47,6 +47,11 @@ message TracePoint
 	optional string method = 3;
 	optional string content = 4;
 	optional int32 milli_cost = 5;
+	optional string ip = 6;
+	optional int32 err_code =7;
+	optional uint64 caller_rcv_ts = 8;
+	optional int32 caller_cost = 9;
+	repeated TracePoint points = 10;
 };
 
 message UserContext
@@ -92,4 +97,51 @@ message MonitorDataInner
 
 message ReqAddMonitorLog {
     repeated MonitorDataInner monitor_log = 1;
+};
+
+enum HttpMethod
+{
+	HTTP_GET = 1;
+	HTTP_POST = 2;
+	HTTP_HEAD = 3;
+	HTTP_OPTIONS = 4;
+	HTTP_PUT = 5;
+	HTTP_DELETE = 6;
+	HTTP_TRACE = 7;
+	HTTP_CONNECT = 8;
+};
+
+enum ContentType
+{
+	CONTENT_TYPE_FORM_URLENCODE = 1;
+	CONTENT_TYPE_FORM_DATA = 2;
+	CONTENT_TYPE_JSON = 3;
+};
+message http_files
+{
+	optional string key_name = 1;
+	optional string file_path = 2;
+};
+
+message req_http
+{
+	optional string uri = 1;
+	optional int32 method = 2[default = 2];
+	repeated string keys = 3;  
+	repeated string vals = 4;  
+	optional int32 timeout = 5[default = 1000]; // ms
+	optional string app_key = 6;
+	optional string app_secret = 7;
+	repeated http_files files = 8;	
+	optional bool is_retry = 9[default = false];
+	optional int32 content_type = 10; // 仅当POST时有效
+	optional string raw_data = 11; // 仅当POST时有效
+	optional bool need_escape = 12[default = true];; //是否需要url escape
+};
+
+message rsp_http
+{
+	optional int32 code = 1[default = 0];
+	optional string err_msg = 2;
+	optional string content = 3; // json
 };

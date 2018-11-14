@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS monitor_svr;
+CREATE TABLE `t_monitor` (
+		`id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+		`service_type` varchar(128) NOT NULL DEFAULT '' COMMENT '服务名',
+		`monitor_key` varchar(128) NOT NULL DEFAULT '' COMMENT '监控项',
+		`monitor_value` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '监控值',
+		`timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'DB级别创建时间',
+		PRIMARY KEY (`id`),
+		KEY `ix_service_monitor_ts` (`service_type`,`monitor_key`,`timestamp`),
+		KEY `idx_ts` (`timestamp`)
+		); 

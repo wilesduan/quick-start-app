@@ -12,4 +12,17 @@
 	"listen":[
 		"udp://eth0:21010?heartbeat=1&service=monitor_svr&acc_num=1&idle_time=60"
 	],
+	"mysql": {
+		"type": "shard",
+		"hosts": [
+			{
+				"id": "0",
+				"user": "**db_name**",
+				"passwd": "**db_password**",
+				"ip": "**db_ip**",
+				"port": 3306,
+				"dbname": "monitor_svr"
+			}
+		]
+	}
 }

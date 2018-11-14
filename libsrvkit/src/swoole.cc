@@ -319,16 +319,11 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 			req_co->json_swoole_body_data = js_data;
 		}
 
-#if 0
 		json_object* js_pb_svr = NULL;
 		json_object_object_get_ex(js_body, "pb_svr", &js_pb_svr);
-		if(js_pb_svr && req_co->proto_user_ctx){
-			blink::UserContext ctx;
-			if(!util_parse_pb_from_json(&ctx, js_pb_svr)){
-				((blink::UserContext*)(req_co->proto_user_ctx))->CopyFrom(ctx);
-			}
+		if(js_pb_svr){
+			util_parse_pb_from_json(&user_ctx, js_pb_svr);
 		}
-#endif
 
 		json_object* js_extra = NULL;
 		json_object_object_get_ex(js_body, "extra", &js_extra);
@@ -389,7 +384,7 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 	}else{
 		mc_collect(worker, &req_co->rpc_info, cost, req_co->sys_code, 0, req_co->uctx.ss_trace_id_s);
 		init_user_context(&user_ctx, &req_co->rpc_info, cost, req_co->sys_code);
-		append_trace_point(req_co, &req_co->rpc_info, NULL, req_co->sys_code);
+		append_trace_point(req_co, &req_co->rpc_info, &user_ctx, req_co->sys_code);
 	}
 
 	do_fin_request(req_co);

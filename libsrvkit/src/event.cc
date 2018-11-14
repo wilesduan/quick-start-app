@@ -210,12 +210,19 @@ void cancel_write_ev(int epoll_fd, ev_ptr_t* ptr)
 
 void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code)
 {
+	if(usr_ctx->trace_points_size()){
+		return;
+	}
+
+	uint64_t now = get_milli_second();
 	blink::TracePoint* p = usr_ctx->add_trace_points();
 	p->set_service(info->service);
 	p->set_method(info->method);
 	p->set_ip(info->ip);
 	p->set_milli_cost(cost);
 	p->set_err_code(err_code);
+	p->set_caller_rcv_ts(now);
+	p->set_caller_cost(now - info->start_time);
 }
 
 void do_check_co_timeout(worker_thread_t* worker, list_head* node)

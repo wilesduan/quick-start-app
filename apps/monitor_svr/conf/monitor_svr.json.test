@@ -1,0 +1,3 @@
+{
+	"zk":"zk://172.12.33.130:2181/zk/config/monitor_svr.json",
+}

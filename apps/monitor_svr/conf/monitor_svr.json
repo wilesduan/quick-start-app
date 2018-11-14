@@ -1,0 +1,15 @@
+{
+	"daemon":1,
+	"log":{
+		"level":15,
+		"local":"/data/logs/monitor_svr",
+		"rotate_size":"1G",
+		"rotate_interval":60,
+		"keep_files":5
+	},
+	"max_conns_per_worker":10000,
+	"wt_num":1,
+	"listen":[
+		"udp://eth0:21010?heartbeat=1&service=monitor_svr&acc_num=1&idle_time=60"
+	],
+}

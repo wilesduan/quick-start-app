@@ -46,7 +46,7 @@ typedef void(*fn_recv_quit_signal)(server_t* arg);
 typedef void(*fn_recv_term_signal)(server_t* arg);
 typedef void(*fn_recv_reload_signal)(server_t* arg);
 typedef void(*fn_on_recv_upd_data)(worker_thread_t* worker, int udp_sock_fd, void* body, sockaddr_in* addr, socklen_t addr_len);
-typedef const char*(*fn_err_code_2_str)(int err_code);
+typedef const char*(*fn_err_code_2_str)(int lang, int err_code);
 typedef int(*fn_method)(ev_ptr_t* ptr, coroutine_t* co);
 
 typedef struct mt_call_backs_t
@@ -121,6 +121,7 @@ struct cmd_t;
 
 typedef struct redis_cmds_t
 {
+	uint64_t start_ts;
 	int executed;
 	list_head cmds;
 }redis_cmds_t;

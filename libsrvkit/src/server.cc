@@ -870,14 +870,14 @@ static int init_wt(worker_thread_t* wt, json_object* config)
 
 	int rc = connect_2_redis(&(wt->redis), config);
 	if(rc){
-		return rc;
+		LOG_ERR("failed to connect 2 redis");
 	}
 
 	json_object* js_mysql;
 	if(json_object_object_get_ex(config, "mysql", &js_mysql)){
 		rc = connect_2_mysql(wt, js_mysql);
 		if(rc){
-			return rc;
+			LOG_ERR("failed to connect 2 mysql");
 		}
 	}
 

@@ -20,7 +20,6 @@ static void notify_hc_client(http_client_t* hc);
 static int set_curl_opt(http_client_t* hc, http_request_t* hr, CURL* easy);
 static void check_multi_info(http_client_t* hc);
 static void fin_http_2_worker(http_request_t* hr, int code, const char* err_msg);
-static void fin_http_2_worker(http_request_t* hr, int code, const char* err_msg);
 
 http_client_t* malloc_http_client()
 {

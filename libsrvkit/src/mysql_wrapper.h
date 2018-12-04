@@ -90,6 +90,8 @@ typedef struct mysql_query_t
 	int rc;
 	uint64_t insert_id;
 	int64_t affected_rows;
+	
+	uint64_t start_ts;
 }mysql_query_t;
 
 mysql_query_t* mysql_malloc_query(rpc_ctx_t* ctx, MYSQL* mysql, const char* query);

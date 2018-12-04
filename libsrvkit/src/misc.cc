@@ -20,6 +20,20 @@ void async_heartbeat(worker_thread_t* worker, ev_ptr_t* ptr)
 	}
 }
 
+static int get_lang(coroutine_t* co)
+{
+	if(!co)
+		return 0;
+
+	return ((co->uctx.dev_type)>>24);
+}
+
+
+int get_lang_by_rpc_ctx(rpc_ctx_t* ctx)
+{
+	return get_lang(ctx->co);
+}
+
 static const char* get_final_err_msg(coroutine_t* co, int ret_code, const char* err_msg)
 {
 	if(strlen(co->err_msg)){
@@ -29,7 +43,7 @@ static const char* get_final_err_msg(coroutine_t* co, int ret_code, const char* 
 	worker_thread_t* worker = (worker_thread_t*)(co->worker);
 	server_t* server = (server_t*)(worker->mt);
 	if((!err_msg || !strlen(err_msg)) && server->fn_code_2_str){
-		return (server->fn_code_2_str)(ret_code);
+		return (server->fn_code_2_str)(get_lang(co), ret_code);
 	}
 
 	return err_msg;
@@ -142,7 +156,7 @@ void add_trace_point(rpc_ctx_t* ctx, const char* service, const char* method, co
 void refill_trace_point(rpc_ctx_t* ctx, const char* service, const char* method, int milli_cost, int code)
 {
 	blink::UserContext* uctx = (blink::UserContext*)(ctx->co->proto_user_ctx);
-	if(!uctx->trace_points_size()){
+	if(!uctx || !uctx->trace_points_size()){
 		return;
 	}
 
@@ -163,7 +177,7 @@ void append_trace_point(coroutine_t* co, rpc_info_t* info, const blink::UserCont
 	moni_trace_point_cost(info->service, info->method, now-info->start_time);
 
 	blink::UserContext* uctx = (blink::UserContext*)(co->proto_user_ctx);
-	if(!uctx->trace_points_size() || !recv_ctx || !recv_ctx->trace_points_size()){
+	if(!uctx || !uctx->trace_points_size() || !recv_ctx || !recv_ctx->trace_points_size()){
 		return;
 	}
 
@@ -193,7 +207,7 @@ void append_trace_point(coroutine_t* co, rpc_info_t* info, const blink::UserCont
 void add_batch_trace_point(coroutine_t* co)
 {
 	blink::UserContext* uctx = (blink::UserContext*)(co->proto_user_ctx);
-	if(!uctx->trace_points_size()){
+	if(!uctx || !uctx->trace_points_size()){
 		return;
 	}
 
@@ -206,7 +220,7 @@ void add_batch_trace_point(coroutine_t* co)
 void fill_batch_trace_point_cost(coroutine_t* co)
 {
 	blink::UserContext* uctx = (blink::UserContext*)(co->proto_user_ctx);
-	if(!uctx->trace_points_size()){
+	if(!uctx || !uctx->trace_points_size()){
 		return;
 	}
 

@@ -381,7 +381,7 @@ void begin_batch_request(coroutine_t* co)
 	add_batch_trace_point(co);
 }
 
-void end_batch_request(coroutine_t* co)
+void end_batch_request(coroutine_t* co, std::vector<int>* rets)
 {
 	if(!is_co_in_batch_mode(co)){
 		return;
@@ -410,6 +410,9 @@ void end_batch_request(coroutine_t* co)
 	list_for_each(p, &co->batch_rslt_list){
 		batch_rpc_result_t* rslt = list_entry(p, batch_rpc_result_t, batch_rslt);
 		LOG_DBG("batch request call %s:%s %d, last sys_code:%d", rslt->rpc_info.service, rslt->rpc_info.method, rslt->sys_code, co->sys_code);
+		if(rets){
+			rets->push_back(rslt->sys_code);
+		}
 	}
 
 	co->batch_mode = 0;

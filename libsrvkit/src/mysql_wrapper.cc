@@ -607,10 +607,17 @@ void async_fin_mysql_execute(mysql_query_t* query)
 
 static int do_stmt_execute(void* arg)
 {
+	uint64_t nts = get_monotonic_milli_second();
 	mysql_query_t* query = (mysql_query_t*)arg;
 	int rc = check_mysql_status(query);
 	if(rc){
 		LOG_ERR("mysql status not ok");
+		goto end_exe;
+	}
+
+	if(nts > query->start_ts + 500){
+		LOG_ERR("mysql task wait too long:%llu", nts-query->start_ts);
+		rc = -111;
 		goto end_exe;
 	}
 
@@ -674,10 +681,7 @@ int execute_mysql_query(mysql_query_t* query)
 		return -1;
 	}
 
-	struct timeval macro_start;
-	struct timeval macro_end;
-	gettimeofday(&macro_start, NULL);
-
+	query->start_ts = get_monotonic_milli_second();
 	int rc = 0;
 	if(!query->async){
 		do_stmt_execute(query);
@@ -695,10 +699,10 @@ int execute_mysql_query(mysql_query_t* query)
 
 	rc = query->rc;
 
-	gettimeofday(&macro_end, NULL);
-	int milli_cost = 1000*(macro_end.tv_sec-macro_start.tv_sec) +(macro_end.tv_usec-macro_start.tv_usec)/1000;
+	int milli_cost = get_monotonic_milli_second() - query->start_ts;
 	MONITOR_ACC("cost_mysql_execute", milli_cost);
 	MONITOR_ACC("qpm_mysql_execute", 1);
+	MONITOR_MAX("cost_max_mysql_execute", milli_cost);
 	if(query->stmt){
 		query->reslt.mysql_errno = mysql_stmt_errno(query->stmt);
 		query->reslt.mysql_errmsg = mysql_stmt_error(query->stmt);
@@ -713,10 +717,17 @@ int execute_mysql_query(mysql_query_t* query)
 
 static int do_query(void* arg)
 {
+	uint64_t nts = get_monotonic_milli_second();
 	mysql_query_t* query = (mysql_query_t*)arg;
 	int rc = check_mysql_status(query);
 	if(rc){
 		LOG_ERR("mysql status not ok");
+		goto end_exe;
+	}
+
+	if(nts > query->start_ts+500){
+		rc = -111;
+		LOG_ERR("mysql task wait too long:%llu", nts-query->start_ts);
 		goto end_exe;
 	}
 
@@ -756,10 +767,7 @@ int execute_query(mysql_query_t* query)
 		return -1;
 	}
 
-	struct timeval macro_start;
-	struct timeval macro_end;
-	gettimeofday(&macro_start, NULL);
-
+	query->start_ts = get_monotonic_milli_second();
 	int rc = 0;
 	if(!query->async){
 		do_query(query);
@@ -777,9 +785,9 @@ int execute_query(mysql_query_t* query)
 
 	rc = query->rc;
 
-	gettimeofday(&macro_end, NULL);
-	int milli_cost = 1000*(macro_end.tv_sec-macro_start.tv_sec) +(macro_end.tv_usec-macro_start.tv_usec)/1000;
+	int milli_cost = get_monotonic_milli_second() - query->start_ts;
 	MONITOR_ACC("cost_mysql_execute", milli_cost);
+	MONITOR_MAX("cost_max_mysql_execute", milli_cost);
 	MONITOR_ACC("qpm_mysql_execute", 1);
 
 	return rc;

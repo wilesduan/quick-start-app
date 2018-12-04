@@ -2,8 +2,8 @@
 #define __LIBSRVKIT_HTTP_CLIENT_H__
 #include <blink.pb.h>
 
-#include <curl/curl.h>
-#include <curl/multi.h>
+#include <curl.h>
+#include <multi.h>
 #include <bim_util.h>
 #include <server_inner.h>
 

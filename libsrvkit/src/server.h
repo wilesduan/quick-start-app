@@ -8,6 +8,7 @@
 #include <kafka.h>
 #include <async_task.h>
 #include <http_client.h>
+#include <vector>
 
 server_t* malloc_server(int argc, char** argv);
 
@@ -16,6 +17,7 @@ void add_wt_call_backs(server_t* server, wt_call_backs_t wt_fns);
 
 void add_routine(server_t* server, fn_pthread_routine routine, void* arg);
 void set_code_2_msg(server_t* server, fn_err_code_2_str fn);
+int get_lang_by_rpc_ctx(rpc_ctx_t* ctx);
 
 void add_service(server_t* server, service_t* service);
 int run_server(server_t* server);
@@ -32,7 +34,7 @@ void refill_trace_point(rpc_ctx_t* ctx, const char* service, const char* method,
 void log_trace_point(blink::UserContext* uctx);
 
 void begin_batch_request(coroutine_t* co);
-void end_batch_request(coroutine_t* co);
+void end_batch_request(coroutine_t* co, std::vector<int>* rets=NULL);
 int switch_dbname_charset(mysql_inst_t* inst, int flag = 0);
 
 void regist_rpc_info(rpc_info_t* rpc, const char* service, const char* method);

@@ -210,7 +210,7 @@ void cancel_write_ev(int epoll_fd, ev_ptr_t* ptr)
 
 void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code)
 {
-	if(usr_ctx->trace_points_size()){
+	if(!usr_ctx || usr_ctx->trace_points_size()){
 		return;
 	}
 
@@ -247,7 +247,8 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 
 			util_del_item(worker->co_cache, &(rslt->req_id), sizeof(rslt->req_id));
 			ev_ptr_t* ptr = (ev_ptr_t*)(rslt->ptr);
-			co->sys_code = -2;
+			co->sys_code = -22;
+			rslt->sys_code = -22;
 			proto_client_t* client = get_clients_by_service(worker, rslt->rpc_info.service);
 			for(size_t i = 0; client && i < client->num_clients; ++i){
 				proto_client_inst_t* inst = client->cli_inst_s + i;
@@ -259,7 +260,7 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 			}
 		}
 
-		co_free_batch_rslt_list(co);
+		//co_free_batch_rslt_list(co);
 	}else{
 		mc_collect(worker, &co->rpc_info, co->timeout, -2, 0, co->uctx.ss_trace_id_s);
 		init_user_context(&user_ctx, &co->rpc_info, co->timeout, blink::EN_MSG_RET_TIMEOUT);

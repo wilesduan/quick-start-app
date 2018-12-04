@@ -57,8 +57,7 @@ redisReply* call_redis(rpc_ctx_t* ctx, const char* fmt, ...)
 
 	redis_ctx->len = len;
 	list_add_tail(&(redis_ctx->list), &(ctx->redis_cmds.cmds));
-
-	gettimeofday(&(worker->redis.tv), NULL);
+	ctx->redis_cmds.start_ts = get_monotonic_milli_second();
 
 	redis_client_t* redis = get_redis_client(ctx);
 	if(!redis){
@@ -110,9 +109,7 @@ redisReply* call_redis(rpc_ctx_t* ctx, const char* fmt, ...)
 		co_yield(ctx->co);
 	}
 
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	uint64_t milli_cost = 1000*(tv.tv_sec-worker->redis.tv.tv_sec)+(tv.tv_usec-worker->redis.tv.tv_usec)/1000;
+	uint64_t milli_cost = get_monotonic_milli_second() - ctx->redis_cmds.start_ts;
 	MONITOR_ACC("cost_call_redis", milli_cost);
 	MONITOR_ACC("qpm_call_redis", 1);
 	MONITOR_MAX("cost_max_call_redis", milli_cost);
@@ -164,7 +161,7 @@ redisReply* call_redisv(rpc_ctx_t* ctx, const std::vector<std::string>& cmds)
 	redis_ctx->len = len;
 	list_add_tail(&(redis_ctx->list), &(ctx->redis_cmds.cmds));
 
-	gettimeofday(&(worker->redis.tv), NULL);
+	ctx->redis_cmds.start_ts = get_monotonic_milli_second();
 
 	redis_client_t* redis = get_redis_client(ctx);
 	if(!redis){
@@ -216,9 +213,7 @@ redisReply* call_redisv(rpc_ctx_t* ctx, const std::vector<std::string>& cmds)
 		co_yield(ctx->co);
 	}
 
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	uint64_t milli_cost = 1000*(tv.tv_sec-worker->redis.tv.tv_sec)+(tv.tv_usec-worker->redis.tv.tv_usec)/1000;
+	uint64_t milli_cost = get_monotonic_milli_second() - ctx->redis_cmds.start_ts;
 	MONITOR_ACC("cost_call_redisv", milli_cost);
 	MONITOR_ACC("qpm_call_redisv", 1);
 	MONITOR_MAX("cost_max_call_redisv", milli_cost);
@@ -514,8 +509,7 @@ int begin_redis_pipeline(rpc_ctx_t* ctx)
 
 	ctx->redis_cmds.executed = 0;
 
-	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
-	gettimeofday(&(worker->redis.tv), NULL);
+	ctx->redis_cmds.start_ts = get_monotonic_milli_second();
 	ctx->redis = get_redis_client(ctx);
 	if(!ctx->redis){
 		return -3;
@@ -684,9 +678,7 @@ void end_redis_pipeline(rpc_ctx_t* ctx)
 	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
 	free_redis_replys(&worker->redis);
 
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	uint64_t milli_cost = 1000*(tv.tv_sec-worker->redis.tv.tv_sec)+(tv.tv_usec-worker->redis.tv.tv_usec)/1000;
+	uint64_t milli_cost = get_monotonic_milli_second() - ctx->redis_cmds.start_ts;
 	MONITOR_ACC("cost_pipeline_call_redis", milli_cost);
 	MONITOR_ACC("qpm_pipeline_call_redis", 1);
 	MONITOR_MAX("cost_max_pipeline_call_redis", milli_cost);
@@ -823,7 +815,7 @@ static int do_redis_cluster_cmd(void* arg)
 	ctx->redis_cmds.executed = 1;
 	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
 	redis_client_t* redis = ctx->redis; 
-
+	uint64_t nts = get_monotonic_milli_second();
 	prepare_redis_status(redis);
 	list_head* p = NULL;
 	list_for_each(p, &(ctx->redis_cmds.cmds)){
@@ -831,6 +823,13 @@ static int do_redis_cluster_cmd(void* arg)
 		if(!redis || !redis->client){
 			redis_ctx->err = 1;//REDIS_ERR_IO
 			redis_ctx->err_str = strdup("redis server seems not exist");
+			continue;
+		}
+
+		if(nts > ctx->redis_cmds.start_ts+200){
+			redis_ctx->err = 8;
+			redis_ctx->err_str = strdup("drop task");
+			LOG_ERR("redis Task wait:%"PRIu64, nts-ctx->redis_cmds.start_ts);
 			continue;
 		}
 
@@ -884,6 +883,7 @@ static int do_redis_tw_cmd(void* arg)
 	ctx->redis_cmds.executed = 1;
 	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
 	redis_client_t* redis = ctx->redis;
+	uint64_t nts = get_monotonic_milli_second();
 	prepare_redis_status(redis);
 
 	list_head* p = NULL;
@@ -892,6 +892,13 @@ static int do_redis_tw_cmd(void* arg)
 		if(!redis || !redis->client){
 			redis_ctx->err = 1;//REDIS_ERR_IO
 			redis_ctx->err_str = strdup("redis server seems not exist");
+			continue;
+		}
+
+		if(nts > ctx->redis_cmds.start_ts+200){
+			redis_ctx->err = 8;
+			redis_ctx->err_str = strdup("drop task");
+			LOG_ERR("redis Task wait:%"PRIu64, nts-ctx->redis_cmds.start_ts);
 			continue;
 		}
 

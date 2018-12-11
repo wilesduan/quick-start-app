@@ -186,7 +186,7 @@ int process_pb_request_from_ev_ptr(ev_ptr_t* ptr)
 		blink::MsgBody body;
 		rc = util_parse_pb_from_buff(body, ptr->recv_chain, head.len());
 		if(rc < 0){
-			LOG_ERR("failed to parse body");
+			LOG_ERR("failed to parse body:%s:%d, rc:%d headlen:%d", ptr->ip, ptr->port, rc, head.len());
 			return -2;
 		}
 		if(rc > 0){

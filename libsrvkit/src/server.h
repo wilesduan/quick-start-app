@@ -39,6 +39,6 @@ int switch_dbname_charset(mysql_inst_t* inst, int flag = 0);
 
 void regist_rpc_info(rpc_info_t* rpc, const char* service, const char* method);
 
-int invoke_http_request(rpc_ctx_t* ctx, blink::req_http* req, blink::rsp_http* rsp);
+int invoke_http_request(rpc_ctx_t* ctx, blink::req_http* req, blink::rsp_http* rsp, http_info_t* info);
 #endif
 

@@ -321,6 +321,15 @@ int64_t mysql_affected_rows(mysql_query_t* query)
 {
 	return query->affected_rows;
 }
+int mysql_query_errno(mysql_query_t* query)
+{
+    return query->reslt.mysql_errno;
+}
+const char* mysql_query_errmsg(mysql_query_t* query)
+{
+    return query->reslt.mysql_errmsg;
+}
+
 
 static int free_mysql_stmt(void* arg)
 {

@@ -87,13 +87,33 @@ void run_http_client(http_client_t* hc)
 	pthread_create(&hc->pth, NULL, run_hc_thread, hc);
 }
 
-int invoke_http_request(rpc_ctx_t* ctx, blink::req_http* req, blink::rsp_http* rsp)
+void free_http_request(http_request_t* hr)
 {
+	if(!hr){
+		return;
+	}
+
+	if(hr->post_params){
+		free(hr->post_params);
+	}
+
+	free(hr);
+}
+
+int invoke_http_request(rpc_ctx_t* ctx, blink::req_http* req, blink::rsp_http* rsp, http_info_t* info)
+{
+	if(!ctx || !req || !rsp){
+		LOG_ERR("ctx, req or rsp is null");
+		return 0;
+	}
+
+
 	http_client_t* hc = ((worker_thread_t*)(ctx->co->worker))->hc;
 	http_request_t* hr = (http_request_t*)calloc(1, sizeof(http_request_t));
 	hr->ctx = ctx;
 	hr->req = req;
 	hr->rsp = rsp;
+	hr->info = info;
 	INIT_LIST_HEAD(&hr->list);
 
 	pthread_mutex_lock(&hc->lock);
@@ -101,11 +121,8 @@ int invoke_http_request(rpc_ctx_t* ctx, blink::req_http* req, blink::rsp_http* r
 	pthread_mutex_unlock(&hc->lock);
 
 	notify_hc_client(hc);
-	if(!rsp){
-		return 0;
-	}
-
 	co_yield(ctx->co);
+	LOG_DBG("req:%s rsp:%s", req->ShortDebugString().data(), rsp->ShortDebugString().data());
 	return 0;
 }
 
@@ -207,6 +224,7 @@ static void on_recv_new_request(http_client_t* hc)
 		CURL *easy = curl_easy_init();
 		if(!easy){
 			fin_http_2_worker(hr, CURLE_FAILED_INIT, "failed to init curl");
+			free_http_request(hr);
 			continue;
 		}
 
@@ -214,6 +232,7 @@ static void on_recv_new_request(http_client_t* hc)
 		if(rc){
 			curl_easy_cleanup(easy);
 			fin_http_2_worker(hr, rc, "failed to set curl opt");
+			free_http_request(hr);
 			continue;
 		}
 
@@ -370,45 +389,26 @@ static int set_curl_opt(http_client_t* hc, http_request_t* hr, CURL* easy)
 	rpc_ctx_t* ctx = hr->ctx;
 	blink::req_http* req = hr->req;
 
-    std::string remote_host="";
-    std::string remote_path="";
-    
-	std::map<std::string, circuit_breaker_t*>* url_breakers = hc->url_breakers;
-    CURL *curl = easy;
-    CURLcode res = CURLE_OK;
-
-    std::string url = req->uri();
-	std::string params_str;
-	struct curl_httppost* lastptr = NULL;
-	struct curl_httppost* formpost = NULL;
-	circuit_breaker_t* breaker = NULL;
-
-    int connect_timeout = req->timeout();
-    int read_timeout = req->timeout();
-
-    if (url.empty()){
-		res = CURLE_URL_MALFORMAT;
-		goto END;
+    if (req->uri().empty()){
+		return CURLE_URL_MALFORMAT;
     }
 
-	breaker = get_breaker_by_url(url, url_breakers);
-	if(breaker && (!check_in_circuit_breaker(breaker))){
-		LOG_ERR("[http_proxy_ALARM][%s]@url circuit breaker failed. code:1, trace_id:%s, uid:%llu", url.data(), ctx->co->uctx.ss_trace_id_s, ctx->co->uctx.uid); 
-		res = CURLE_OBSOLETE40;
-		//char tmp[128];
-		//snprintf(tmp, 128, "hit_breaker_%s", .cmd_name.data());
-		//MONITOR_ACC(tmp, 1);
-		goto END;
+	// Check key & val match
+	if (req->keys_size() != req->vals_size()){
+		return CURLE_UNSUPPORTED_PROTOCOL;
 	}
 
-	// Check key & val match
-	if (req->keys_size() != req->vals_size())
-	{
-		res = CURLE_UNSUPPORTED_PROTOCOL;
-		goto END;
+    std::string url = req->uri();
+	std::map<std::string, circuit_breaker_t*>* url_breakers = hc->url_breakers;
+	circuit_breaker_t* breaker = get_breaker_by_url(url, url_breakers);
+	if(breaker && (!check_in_circuit_breaker(breaker))){
+		LOG_ERR("[http_proxy_ALARM][%s]@url circuit breaker failed. code:1, trace_id:%s, uid:%llu", url.data(), ctx->co->uctx.ss_trace_id_s, ctx->co->uctx.uid); 
+		return CURLE_OBSOLETE40;
 	}
 
 	// init
+    CURL *curl = easy;
+	std::string params_str;
 	get_params(curl, req, params_str);
 
 	curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION, write_data); //对返回的数据进行操作的函数地址
@@ -426,22 +426,31 @@ static int set_curl_opt(http_client_t* hc, http_request_t* hr, CURL* easy)
 			hr->headers = curl_slist_append(hr->headers, "Content-Type:application/json");
 			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hr->headers);
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req->raw_data().c_str()); //设置问非0表示本次操作为post
+			//curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, req->raw_data().size()); 
 		}else{
-			curl_easy_setopt(curl,CURLOPT_POSTFIELDS, params_str.c_str()); //设置问非0表示本次操作为post
+			hr->post_params = strdup(params_str.data());
+			curl_easy_setopt(curl,CURLOPT_POSTFIELDS, hr->post_params); //设置问非0表示本次操作为post
+			//curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, params_str.size()); 
 		}
 		curl_easy_setopt(curl,CURLOPT_URL, url.c_str()); //url地址
 	}
 	LOG_DBG("[do_blink_http_proxy_invoke] url: %s", url.c_str());
 	curl_easy_setopt(curl, CURLOPT_HEADER, 0); //将响应头信息和相应体一起传给write_data
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); // 多线程屏蔽信号
+    int connect_timeout = req->conn_timeout();
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, connect_timeout);
+    int read_timeout = req->read_timeout();
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, read_timeout);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, hr->error);
 	curl_easy_setopt(curl, CURLOPT_PRIVATE, hr);
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
 	// upload file
+	struct curl_httppost* lastptr = NULL;
+	struct curl_httppost* formpost = NULL;
 	for (int i = 0; i < req->files_size(); ++i)
 		curl_formadd(&formpost, &lastptr, CURLFORM_PTRNAME, req->files(i).key_name().c_str(), CURLFORM_FILE, req->files(i).file_path().c_str(), CURLFORM_END);
 	if (req->files_size() > 0 )
@@ -449,13 +458,20 @@ static int set_curl_opt(http_client_t* hc, http_request_t* hr, CURL* easy)
 	// End upload file
 
 END:
-	return res;
+	return 0;
 }
 
 static void check_url_breaker(http_client_t* hc, http_request_t* hr, CURLcode res)
 {
 	if(!hc || !hr || !hr->req || hr->req->uri().empty()){
 		return;
+	}
+
+	if(hr->rsp){
+		hr->rsp->set_code(res);
+		if(res != CURLE_OK){
+			hr->rsp->set_err_msg(curl_easy_strerror(res));
+		}
 	}
 
 	circuit_breaker_t* br = get_breaker_by_url(hr->req->uri(), hc->url_breakers);
@@ -483,12 +499,23 @@ static void check_multi_info(http_client_t* hc)
 			res = msg->data.result;
 			curl_easy_getinfo(easy, CURLINFO_PRIVATE, &hr);
 			curl_easy_getinfo(easy, CURLINFO_EFFECTIVE_URL, &eff_url);
+
+			if(res == CURLE_OK && hr->info){
+				char* local_ip = NULL;
+				char* remote_ip = NULL;
+				curl_easy_getinfo(easy, CURLINFO_LOCAL_IP, &local_ip);
+				curl_easy_getinfo(easy, CURLINFO_PRIMARY_IP, &remote_ip);
+				curl_easy_getinfo(easy, CURLINFO_TOTAL_TIME, &(hr->info->total_cost));
+				local_ip?strncpy(hr->info->local_ip, local_ip, sizeof(hr->info->local_ip)):0;
+				remote_ip?strncpy(hr->info->remote_ip, remote_ip, sizeof(hr->info->remote_ip)):0;
+				curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &hr->info->response_code);
+			}
 			//printf("%llu %llu msg done:%s\n", pthread_self(), get_monotonic_milli_second(), eff_url);
 			curl_multi_remove_handle(hc->multi, easy);
 			curl_easy_cleanup(easy);
 			check_url_breaker(hc, hr, res);
 			fin_http_2_worker(hr, res, hr->error);
-			free(hr);
+			free_http_request(hr);
 		}
 	}
 }
@@ -513,7 +540,7 @@ static void fin_http_2_worker(http_request_t* hr, int code, const char* err_msg)
 
 void async_fin_http_request(rpc_ctx_t* ctx)
 {
-	LOG_DBG("fin redis execute");
+	LOG_DBG("fin http request");
 	coroutine_t* co = ctx->co;
 	co_resume(co);
 	co_release(&co);

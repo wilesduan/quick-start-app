@@ -8,14 +8,25 @@
 #include <server_inner.h>
 
 struct rpc_ctx_t;
+
+typedef struct http_info_t
+{
+	long  response_code;
+	double total_cost;
+	char local_ip[32];
+	char remote_ip[32];
+}http_info_t;
+
 typedef struct http_request_t
 {
 	rpc_ctx_t* ctx;
 	char error[CURL_ERROR_SIZE];
 	blink::req_http* req;
 	blink::rsp_http* rsp;
+	http_info_t* info;
 
 	curl_slist* headers;
+	char* post_params;
 	list_head list;
 }http_request_t;
 

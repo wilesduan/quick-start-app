@@ -101,6 +101,9 @@ typedef void(*fn_handle_row)(void*, void*);
 int mysql_enumerate_rslt(mysql_query_t* query, fn_handle_row handler, void* buff, void* ctx);
 uint64_t mysql_insert_id(mysql_query_t*);
 int64_t mysql_affected_rows(mysql_query_t* query);
+int mysql_query_errno(mysql_query_t*);
+const char* mysql_query_errmsg(mysql_query_t*);
+
 
 //bind query
 int mysql_bind_tiny_int(mysql_query_t* query, int* value);

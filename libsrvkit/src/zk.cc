@@ -301,8 +301,9 @@ static void get_same_group_node(zhandle_t* zkhandle, const char* zk_path, const 
 	char sz_content[1024];
 	for(int i = 0; i < childrens->count; ++i){
 		snprintf(sz_child_path, sizeof(sz_child_path), "%s/%s", zk_path, childrens->data[i]);
+
+		memset(sz_content, 0, sizeof(sz_content));
 		int len = sizeof(sz_content)-1;
-		sz_content[len] = 0;
 		int rc = zoo_get(zkhandle, sz_child_path, 0, sz_content, &len, NULL);
 		if(rc != ZOK){
 			LOG_ERR("failed to fetch zk path:%s", sz_child_path);

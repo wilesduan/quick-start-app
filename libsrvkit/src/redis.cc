@@ -798,7 +798,8 @@ static int send_all_cluster_cmd(redisClusterContext* cc)
                 if (redisBufferWrite(c,&wdone) == REDIS_ERR)
                 {
                     dict_release_iterator(di);
-                    return REDIS_ERR;
+					c->err = REDIS_ERR;
+					break;
                 }
             } while (!wdone);
         }

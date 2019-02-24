@@ -457,7 +457,6 @@ static int set_curl_opt(http_client_t* hc, http_request_t* hr, CURL* easy)
 		curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 	// End upload file
 
-END:
 	return 0;
 }
 

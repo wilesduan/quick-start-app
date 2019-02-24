@@ -137,6 +137,8 @@ message req_http
 	optional int32 content_type = 10; // 仅当POST时有效
 	optional string raw_data = 11; // 仅当POST时有效
 	optional bool need_escape = 12[default = true];; //是否需要url escape
+	optional int32 conn_timeout = 13[default = 100];
+	optional int32 read_timeout = 14[default = 1000];
 };
 
 message rsp_http

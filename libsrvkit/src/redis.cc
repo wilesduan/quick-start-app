@@ -723,6 +723,7 @@ static void free_redis_ctx(redis_ctx_t* ctx)
 	free(ctx);
 }
 
+#if 0
 static dictIterator* dict_get_iterator(dict* ht)
 {
     dictIterator *iter = (dictIterator*)malloc(sizeof(*iter));
@@ -809,6 +810,7 @@ static int send_all_cluster_cmd(redisClusterContext* cc)
 
     return REDIS_OK;
 }
+#endif
 
 static int do_redis_cluster_cmd(void* arg)
 {
@@ -843,7 +845,7 @@ static int do_redis_cluster_cmd(void* arg)
 		}
 	}
 
-	send_all_cluster_cmd((redisClusterContext*)(redis->client));
+	redisCLusterSendAll((redisClusterContext*)(redis->client));
 
 	p = NULL;
 	list_for_each(p, &(ctx->redis_cmds.cmds)){

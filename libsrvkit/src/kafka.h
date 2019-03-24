@@ -4,6 +4,7 @@
 #include <server_inner.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <config.pb.h>
 
 enum kafka_msg_format
 {
@@ -61,8 +62,8 @@ typedef struct rdkafka_msg_cmd_t
 	int len;
 }rdkafka_msg_cmd_t;
 
-libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, json_object* conf);
-libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, json_object* conf);
+libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const blink::pb_kafka_consumer& conf);
+libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server,  const blink::pb_kafka_producer& conf);
 
 int init_kafka_consumer(server_t* server);
 int init_kafka_producer(server_t* server);

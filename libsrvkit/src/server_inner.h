@@ -16,6 +16,7 @@
 #include <timer_def.h>
 #include <connector.h>
 #include <blink.pb.h>
+#include <config.pb.h>
 #include <net.h>
 
 
@@ -429,6 +430,7 @@ typedef struct server_t
 {
 	char* appname;
 	json_object* config;
+	blink::pb_config* pb_config;
 
 	fn_err_code_2_str fn_code_2_str;
 
@@ -509,12 +511,12 @@ ev_ptr_t* get_ev_ptr(worker_thread_t* worker,int fd);
 void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code);
 
 //mysql
-int connect_2_mysql(worker_thread_t* wt, json_object* config);
+int connect_2_mysql(worker_thread_t* wt, const blink::pb_mysql_config& config);
 
 //net.cc
 void add_one_listen(worker_thread_t* worker, listen_t* lten);
 void init_client_inst(worker_thread_t* worker, proto_client_inst_t* cli, const std::pair<char*, int>& ip_port, int async_fd);
-void add_dep_service(worker_thread_t* wt, json_object* config);
+void add_dep_service(worker_thread_t* wt, const blink::pb_config* config);
 void monitor_accept(worker_thread_t* worker);
 void update_client_inst(worker_thread_t* worker, String_vector* strings);
 int do_listen(server_t* server);

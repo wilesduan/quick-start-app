@@ -16,14 +16,17 @@ message pb_dep_service
 {
 	optional string name = 1;
 	optional string type = 2;
-	optional int32 hash = 3;
+	optional int32 hash = 3[default=0];
 	optional int32 req_queue_size = 4;
 	optional int32 heartbeat = 5;
 	optional string url = 6;
-	optional int32 failure_in_10s = 7[default=5];
+	optional int32 failure_in_10s = 7[default=100];
 	optional int32 half_open_ratio = 8[default=10];
 	optional string ssl_cert = 9;
 	optional string ssl_key = 10;
+	optional string load_balance = 11;
+	optional int32 timeout = 12[default=800];
+	optional string sock = 13;
 };
 
 message pb_mysql_host
@@ -34,6 +37,9 @@ message pb_mysql_host
 	optional string ip = 4;
 	optional int32 port = 5;
 	optional string dbname = 6;
+	optional string charset = 7;
+	optional int32 pending = 8[default = 1000];
+	optional int64 uts = 9;
 };
 
 message pb_mysql_config
@@ -82,4 +88,10 @@ message pb_config
 	optional string redis = 9;
 	optional pb_mysql_config mysql = 10;
 	optional pb_kafka_config kafka = 11;
+	optional int32 sched = 12[default = 1];
+	optional int32 sync_redis = 13 [default=0];
+	optional string name = 14;
+	optional int32 trace = 15[default=0];
+	optional string lancer = 16;
+	optional string redis_4_test = 17;
 };

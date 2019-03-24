@@ -3,6 +3,7 @@
 
 #include <server_inner.h>
 #include <hircluster.h>
+#include <config.pb.h>
 
 redisReply* call_redis(rpc_ctx_t* ctx, const char* cmd, ...);
 redisReply* call_redisv(rpc_ctx_t* ctx, const std::vector<std::string>& cmds);
@@ -19,5 +20,5 @@ void async_fin_redis_execute(rpc_ctx_t* ctx);
 
 void copy_redis_client(redis_client_t* src, redis_client_t* dst);
 
-int connect_2_redis(redis_client_t* redis, json_object* config);
+int connect_2_redis(redis_client_t* redis, const blink::pb_config* pb_config);
 #endif//__LIBSRVKIT_REDIS_H__

@@ -40,7 +40,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-static int init_wt(worker_thread_t* wt, json_object* config);
+static int init_wt(worker_thread_t* wt, const blink::pb_config* pb_config);
 static void init_logger(json_object* conf);
 static void init_limitation();
 static int init_server(server_t* server);
@@ -130,6 +130,12 @@ server_t* malloc_server(int argc, char** argv)
 	}
 
 	server->config = conf;
+	server->pb_config = new blink::pb_config;
+	int rt = util_parse_pb_from_json(server->pb_config, conf);
+	if(rt){
+		printf("######failed to parse pb from json######\n");
+	}
+	printf("pb config:%s\n", server->pb_config->ShortDebugString().data());
 	server->mt_fns.do_recv_quit_signal = do_recv_quit_signal;
 	server->mt_fns.do_recv_term_signal = do_recv_term_signal;
 	server->mt_fns.do_recv_reload_signal = do_recv_reload_signal;
@@ -188,48 +194,30 @@ static void add_signal_fd(server_t* server)
 
 static int init_server(server_t* server)
 {
-	json_object* sched_aff = NULL;
-	json_object_object_get_ex(server->config, "sched", &sched_aff);
-	if(sched_aff && json_object_get_int(sched_aff)){
+	if(server->pb_config->sched()){
 		init_sched_cpu_affinity();
 	}
-	json_object* sync_call_redis = NULL;
-	json_object_object_get_ex(server->config, "sync_redis", &sync_call_redis);
-	if(sync_call_redis){
-		g_sync_call_redis = json_object_get_int(sync_call_redis);
+	g_sync_call_redis = server->pb_config->sync_redis();
+
+	if(server->pb_config->name().size()){
+		g_app_name = strdup(server->pb_config->name().data());
 	}
+
+	g_log_trace_point = server->pb_config->trace();
 
 	json_object* log_conf = NULL;
 	json_object_object_get_ex(server->config, "log", &log_conf);
-	json_object* local_name = NULL;
-	json_object_object_get_ex(server->config, "name", &local_name);
-	if(local_name){
-		const char* name = json_object_get_string(local_name);
-		if(name && strlen(name)){
-			g_app_name = strdup(name);
-		}
-	}
-
-	json_object* trace = NULL;
-	json_object_object_get_ex(server->config, "trace", &trace);
-	g_log_trace_point = trace?json_object_get_int(trace):0;
-
 	init_logger(log_conf);
 	util_run_logger();
 
-	json_object* lancer_conf = NULL;
-	json_object_object_get_ex(server->config, "lancer", &lancer_conf);
-	util_init_lancer(lancer_conf?json_object_get_string(lancer_conf):NULL);
-
+	util_init_lancer(server->pb_config->lancer().size()?server->pb_config->lancer().data():NULL);
 
 	srandom(time(NULL));
 	init_limitation();
 
 	server->appname = g_app_name;
 
-	json_object* max_conns = NULL;
-	json_object_object_get_ex(server->config, "max_conns_per_worker", &max_conns);
-	server->max_conns_per_worker = max_conns?json_object_get_int(max_conns):10000;
+	server->max_conns_per_worker = server->pb_config->max_conns_per_worker();
 
 	/*****i don't know why:if no the following lines signalfd *******/
 	signal(SIGTERM, do_signal);
@@ -287,16 +275,14 @@ static int init_server(server_t* server)
 
 static int init_worker_threads(server_t* server)
 {
-	json_object* wt_num = NULL;
-	json_object_object_get_ex(server->config, "wt_num", &wt_num);
-	server->num_worker = NULL == wt_num?10:json_object_get_int(wt_num);
+	server->num_worker = server->pb_config->wt_num();
 	server->array_worker = (worker_thread_t*)calloc(server->num_worker, sizeof(worker_thread_t));
 	for(int i = 0; i < server->num_worker; ++i){
 		worker_thread_t* worker = server->array_worker + i;
 		worker->mt = server;
 		worker->idx = i;
 		memcpy(&worker->wt_fns, &(server->wt_fns), sizeof(wt_call_backs_t));
-		init_wt(worker, server->config);
+		init_wt(worker, server->pb_config);
 		worker->next = worker+1;
 	}
 
@@ -411,9 +397,7 @@ void add_service(server_t* server, service_t* service)
 
 int run_server(server_t* server)
 {
-	json_object* obj = NULL;
-	json_object_object_get_ex(server->config, "daemon", &obj);
-	int daemon = (NULL == obj)?0:json_object_get_int(obj);
+	int daemon = server->pb_config->daemon();
 	if(daemon){
 		return run_as_daemon(server);
 	}
@@ -655,6 +639,8 @@ restart_child:
 			if(server->config)
 				json_object_put(server->config);
 			server->config = load_cfg(g_sz_cfg);
+			server->pb_config->Clear();
+			util_parse_pb_from_json(server->pb_config, server->config);
 
 			g_exit_status = 0;
 			run_child(server);
@@ -801,7 +787,7 @@ static int fn_on_recv_msg_from_pipe(void* arg)
 	return 0;
 }
 
-static int init_wt(worker_thread_t* wt, json_object* config)
+static int init_wt(worker_thread_t* wt, const blink::pb_config* pb_config)
 {
 	wt->pb_co_id = 0xffffffff;
 	wt->swoole_co_id = 10;
@@ -866,16 +852,15 @@ static int init_wt(worker_thread_t* wt, json_object* config)
 	INIT_LIST_HEAD(&(wt->free_co_list));
 	INIT_LIST_HEAD(&(wt->listens));
 	INIT_LIST_HEAD(&(wt->dep_service));
-	add_dep_service(wt, config);
+	add_dep_service(wt, pb_config);
 
-	int rc = connect_2_redis(&(wt->redis), config);
+	int rc = connect_2_redis(&(wt->redis), pb_config);
 	if(rc){
 		LOG_ERR("failed to connect 2 redis");
 	}
 
-	json_object* js_mysql;
-	if(json_object_object_get_ex(config, "mysql", &js_mysql)){
-		rc = connect_2_mysql(wt, js_mysql);
+	if(pb_config->has_mysql()){
+		rc = connect_2_mysql(wt, pb_config->mysql());
 		if(rc){
 			LOG_ERR("failed to connect 2 mysql");
 		}

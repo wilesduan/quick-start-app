@@ -966,20 +966,17 @@ void copy_redis_client(redis_client_t* src, redis_client_t* dst)
 	}
 }
 
-int connect_2_redis(redis_client_t* redis, json_object* config)
+int connect_2_redis(redis_client_t* redis, const blink::pb_config* pb_config)
 {
-	json_object* js_redis = NULL;
-	if(!(json_object_object_get_ex(config, "redis", &js_redis))){
+	if(!pb_config->redis().size()){ 
 		return 0;
 	}
 
-	const char* link = json_object_get_string(js_redis);
+	const char* link = pb_config->redis().data();
 	if(NULL == link){
 		return 0;
 	}
 
-	json_object* js_test_redis = NULL;
-	json_object_object_get_ex(config, "redis_4_test", &js_test_redis);
-	const char* link_4_test = js_test_redis?json_object_get_string(js_test_redis):NULL;
+	const char* link_4_test = pb_config->redis_4_test().size()?pb_config->redis_4_test().data():NULL;
 	return connect_2_real_redis(redis, link, link_4_test);
 }

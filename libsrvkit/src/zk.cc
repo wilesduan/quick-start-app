@@ -28,9 +28,7 @@ static void sync_config_from_zk(server_t* server)
 		return;
 	}
 
-	json_object* obj = NULL;
-	json_object_object_get_ex(server->config, "daemon", &obj);
-	int daemon = (NULL == obj)?0:json_object_get_int(obj);
+	int daemon = server->pb_config->daemon(); 
 	if(!daemon){
 		return;
 	}
@@ -51,6 +49,7 @@ static void sync_config_from_zk(server_t* server)
 		return;
 	}
 
+	json_object* obj = NULL;
 	json_object_object_get_ex(js_cfg, "auto_load", &obj);
 	int auto_load = obj?json_object_get_int(obj):0;
 	if(!auto_load){
@@ -101,16 +100,11 @@ static void get_register_path_group(server_t* server, char* path, char* group)
 	}
 
 	parsed = true;
-	json_object* js_register_zk = NULL;
-	if(!json_object_object_get_ex(server->config, "register_zk", &js_register_zk)){
+	if(!server->pb_config->register_zk().size()){
 		return;
 	}
 
-	const char* zk_url = json_object_get_string(js_register_zk);
-	if(NULL == zk_url){
-		return;
-	}
-
+	const char* zk_url = server->pb_config->register_zk().data(); 
 	char* c_path = NULL;
 	parse_zk_url(zk_url, NULL, &c_path, NULL);
 	if(NULL == c_path){
@@ -481,16 +475,11 @@ bool should_connect_2_zk(server_t* server)
 		}
 	}
 
-	json_object* js_register_zk = NULL;
-	if(!json_object_object_get_ex(server->config, "register_zk", &js_register_zk)){
+	if(!server->pb_config->register_zk().size()){ 
 		return false;
 	}
 
-	const char* zk_url = json_object_get_string(js_register_zk);
-	if(NULL == zk_url){
-		return false;
-	}
-
+	const char* zk_url = server->pb_config->register_zk().data();
 	parse_zk_url(zk_url, &g_zk_config_host, NULL, NULL);
 	if(NULL == g_zk_config_host){
 		return false;

@@ -1,0 +1,85 @@
+package blink;
+
+message pb_log_config
+{
+	optional int32 level = 1[default=15];
+	optional string local = 2;
+	optional string rotate_size = 3;
+	optional int32 rotate_interval = 4;
+	optional int32 keep_files = 5;
+	optional int32 remote = 6;
+	optional int32 syslog = 7;
+	optional string monitor = 8;
+};
+
+message pb_dep_service
+{
+	optional string name = 1;
+	optional string type = 2;
+	optional int32 hash = 3;
+	optional int32 req_queue_size = 4;
+	optional int32 heartbeat = 5;
+	optional string url = 6;
+	optional int32 failure_in_10s = 7[default=5];
+	optional int32 half_open_ratio = 8[default=10];
+	optional string ssl_cert = 9;
+	optional string ssl_key = 10;
+};
+
+message pb_mysql_host
+{
+	optional string id = 1; 
+	optional string user = 2;
+	optional string passwd = 3;
+	optional string ip = 4;
+	optional int32 port = 5;
+	optional string dbname = 6;
+};
+
+message pb_mysql_config
+{
+	optional string type = 1;
+	repeated pb_mysql_host hosts = 2;
+};
+
+message pb_kafka_consumer
+{
+	optional string group_id = 1;
+	optional string broker_list = 2;
+	repeated string topics = 3;
+	optional string format = 4;
+	optional int32 thread_num = 5[default=1];
+	optional string redis = 6;
+};
+
+message pb_kafka_producer
+{
+	optional string id = 1;
+	optional string broker_list = 2;
+	repeated string topics = 3;
+	optional string format = 4;
+	optional int32 thread_num = 5[default=1];
+	optional string redis = 6;
+	optional int32 max_queue_size = 7[default=10000];
+};
+
+message pb_kafka_config
+{
+	repeated pb_kafka_consumer consumers = 1;
+	repeated pb_kafka_producer producers = 2;
+};
+
+message pb_config
+{
+	optional int32 daemon =1 [default=0];
+	optional pb_log_config log = 2;
+	optional string register_zk = 3;
+	optional string zk = 4;
+	optional int32 max_conns_per_worker = 5[default=100000];
+	optional int32 wt_num = 6[default=10];
+	repeated string listen = 7;
+	repeated pb_dep_service dep_service = 8; 
+	optional string redis = 9;
+	optional pb_mysql_config mysql = 10;
+	optional pb_kafka_config kafka = 11;
+};

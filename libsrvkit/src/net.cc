@@ -672,52 +672,20 @@ static size_t get_next_nonempty_idx(proto_client_t* clients)
 }
 
 
-static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, json_object* inst)
+static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, const blink::pb_dep_service& inst)
 {
-	json_object* js_service = NULL;
-	if(!json_object_object_get_ex(inst, "name", &js_service)){
+	if(!inst.name().size()){
 		LOG_ERR("dep_service item miss service name");
 		return NULL;
 	}
 
-	json_object* js_url = NULL;
-	if(!json_object_object_get_ex(inst, "url", &js_url)){
+	if(!inst.url().size()){
 		LOG_ERR("dep_service item miss service url");
 		return NULL;
 	}
 
-	json_object* js_hash = NULL;
-	json_object_object_get_ex(inst, "hash", &js_hash);
-
-	json_object* js_type = NULL;
-	json_object_object_get_ex(inst, "type", &js_type);
-
-	json_object* js_load_balance = NULL;
-	json_object_object_get_ex(inst, "load_balance", &js_load_balance);
-
-	json_object* js_timeout = NULL;
-	json_object_object_get_ex(inst, "timeout", &js_timeout);
-
-	json_object* js_queue_size = NULL;
-	json_object_object_get_ex(inst, "req_queue_size", &js_queue_size);
-
-	json_object* js_failure_in_10s = NULL;
-	json_object_object_get_ex(inst, "failure_in_10s", &js_failure_in_10s);
-
-	json_object* js_half_open_ratio = NULL;
-	json_object_object_get_ex(inst, "half_open_ratio", &js_half_open_ratio);
-
-	json_object* js_ssl_cert_path = NULL;
-	json_object_object_get_ex(inst, "ssl_cert", &js_ssl_cert_path);
-
-	json_object* js_ssl_cert_key  = NULL;
-	json_object_object_get_ex(inst, "ssl_key", &js_ssl_cert_key);
-
-	json_object* js_sock = NULL;
-	json_object_object_get_ex(inst, "sock", &js_sock);
-
-	const char* service = json_object_get_string(js_service);
-	const char* url = json_object_get_string(js_url);
+	const char* service = inst.name().data();
+	const char* url = inst.url().data();
 
 	proto_client_t* cli = (proto_client_t*)calloc(1, sizeof(proto_client_t));
 	if(NULL == cli){
@@ -726,18 +694,18 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 	INIT_LIST_HEAD(&(cli->list));
 	cli->service = strdup(service);
 	cli->url = strdup(url);
-	cli->hash = js_hash?json_object_get_int(js_hash):0;
-	cli->timeout = js_timeout?json_object_get_int(js_timeout):800;
-	cli->req_queue_size = js_queue_size?json_object_get_int(js_queue_size):0;
-	cli->breaker_setting.failure_threshold_in_10s = js_failure_in_10s?json_object_get_int(js_failure_in_10s):100;
-	cli->breaker_setting.half_open_ratio  = js_half_open_ratio?json_object_get_int(js_half_open_ratio):10;
-	cli->breaker_setting.open = (js_failure_in_10s || js_half_open_ratio)?1:0;
+	cli->hash = inst.hash();
+	cli->timeout = inst.timeout(); 
+	cli->req_queue_size = inst.req_queue_size(); 
+	cli->breaker_setting.failure_threshold_in_10s = inst.failure_in_10s();
+	cli->breaker_setting.half_open_ratio  = inst.half_open_ratio();
+	cli->breaker_setting.open = (inst.has_failure_in_10s()|| inst.has_half_open_ratio())?1:0;
 	cli->proto_type = EN_PROTOCAL_PB;
 	cli->sock_type = EN_SOCK_TCP;
-	cli->ssl_cert_path = js_ssl_cert_path?strdup(json_object_get_string(js_ssl_cert_path)):NULL;
-	cli->ssl_cert_key = js_ssl_cert_key?strdup(json_object_get_string(js_ssl_cert_key)):NULL;
-	if(js_type){
-		const char* type = json_object_get_string(js_type);
+	cli->ssl_cert_path = inst.ssl_cert().size()?strdup(inst.ssl_cert().data()):NULL;
+	cli->ssl_cert_key = inst.ssl_key().size()?strdup(inst.ssl_key().data()):NULL;
+	if(inst.has_type()){
+		const char* type = inst.type().data();
 		if(strcmp(type, "swoole") == 0){
 			cli->proto_type = EN_PROTOCAL_SWOOLE;
 		}else if(strcmp(type, "http2") == 0){
@@ -746,7 +714,7 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 	}
 
 	cli->load_balance = EN_LOAD_BALANCE_ROUND_ROBIN;
-	if(js_load_balance && strcmp(json_object_get_string(js_load_balance), "weight") == 0){
+	if(inst.has_load_balance()&& strcmp(inst.load_balance().data(), "weight") == 0){
 		cli->load_balance = EN_LOAD_BALANCE_WEIGHT;
 	}
 
@@ -756,8 +724,8 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 	}
 	cli->weight_idx = 0;
 
-	if(js_sock){
-		const char* sock = json_object_get_string(js_sock);
+	if(inst.has_sock()){
+		const char* sock = inst.sock().data();
 		if(sock && strcmp(sock, "udp") == 0){
 			cli->sock_type = EN_SOCK_UDP;
 		}
@@ -800,17 +768,16 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, jso
 	return cli;
 }
 
-void add_dep_service(worker_thread_t* wt, json_object* config)
+void add_dep_service(worker_thread_t* wt, const blink::pb_config* pb_config)
 {
-	json_object* dep_service = NULL;
-	if(!json_object_object_get_ex(config, "dep_service", &dep_service)){
+	if(!pb_config->dep_service_size()){
 		return;
 	}
 
-	unsigned size = json_object_array_length(dep_service);
+	unsigned size = pb_config->dep_service_size();
 	for(unsigned i = 0; i < size; ++i){
-		json_object* inst = json_object_array_get_idx(dep_service, i);
-		proto_client_t* clis = get_proto_client_with_config(wt, inst);
+		const blink::pb_dep_service& dep_service = pb_config->dep_service(i);
+		proto_client_t* clis = get_proto_client_with_config(wt, dep_service);
 		if(NULL == clis){
 			continue;
 		}
@@ -1071,18 +1038,15 @@ static int parse_listen_url(const char* url, listen_paramter_t* paremters)
 
 int do_listen(server_t* server)
 {
-	json_object* listen = NULL;
-	if(!json_object_object_get_ex(server->config, "listen", &listen)){
+	if(!server->pb_config->listen_size()){
 		printf("no listen\n");
 		return -1;
 	}
 
 	ifip_t* ifips = util_get_local_ifip();
-	unsigned size = json_object_array_length(listen); 
+	unsigned size = server->pb_config->listen_size(); 
 	for(unsigned i = 0; i < size; ++i){
-		json_object* inst = json_object_array_get_idx(listen, i);
-
-		const char* url = json_object_get_string(inst);
+		const char* url = server->pb_config->listen(i).data();
 		listen_paramter_t paremters;
 		bzero(&paremters, sizeof(paremters));
 		paremters.idle = K_DEFALUT_IDLE_TIME;

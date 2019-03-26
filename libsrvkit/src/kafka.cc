@@ -10,37 +10,22 @@ static void run_one_consumer(libsrvkit_kafka_consumer_t* consumer);
 static void run_one_producer(libsrvkit_kafka_produecer_t* producer);
 static void call_progress_reids(worker_thread_t* dummy_worker, const char* fmt, ...);
 
-libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, json_object* conf)
+libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const blink::pb_kafka_consumer& conf)
 {
-	json_object* js_group = NULL;
-	json_object_object_get_ex(conf, "group.id", &js_group);
-	if(NULL == js_group){
-		LOG_ERR("miss group.id in kafka consumer config");
+	if(!conf.has_group_id()){
+		LOG_ERR("miss group_id in kafka consumer config");
 		return NULL;
 	}
 
-	json_object* js_broker_list = NULL;
-	json_object_object_get_ex(conf, "broker_list", &js_broker_list);
-	if(NULL == js_broker_list){
+	if(!conf.has_broker_list()){
 		LOG_ERR("miss broker list in kafka consumer config");
 		return NULL;
 	}
 
-	json_object* js_topics = NULL;
-	json_object_object_get_ex(conf, "topics", &js_topics);
-	if(NULL == js_topics || !json_object_array_length(js_topics)){
+	if(!conf.topics_size()){
 		LOG_ERR("miss topics in kafka consumer config");
 		return NULL;
 	}
-
-	json_object* js_format = NULL;
-	json_object_object_get_ex(conf, "format", &js_format);
-
-	json_object* js_consume_progress_redis = NULL;
-	json_object_object_get_ex(conf, "redis", &js_consume_progress_redis);
-
-	json_object* js_thread_num = NULL;
-	json_object_object_get_ex(conf, "thread_num", &js_thread_num);
 
 	libsrvkit_kafka_consumer_t* consumer = (libsrvkit_kafka_consumer_t*)calloc(1, sizeof(libsrvkit_kafka_consumer_t));
 	if(NULL == consumer){
@@ -48,28 +33,28 @@ libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, json_obj
 		return NULL;
 	}
 	consumer->server = server;
-	consumer->group_id = strdup(json_object_get_string(js_group));
-	consumer->broker_list = strdup(json_object_get_string(js_broker_list));
+	consumer->group_id = strdup(conf.group_id().data());
+	consumer->broker_list = strdup(conf.broker_list().data());
 
-	unsigned size = json_object_array_length(js_topics);
+	unsigned size = conf.topics_size(); 
 	consumer->topics = (char**)calloc(size, sizeof(char*));
 	for(unsigned i = 0; i < size; ++i){
-		(consumer->topics)[i] = strdup(json_object_get_string(json_object_array_get_idx(js_topics, i)));
+		(consumer->topics)[i] = strdup(conf.topics(i).data());
 	}
 	consumer->num_topics = size;
 
 	consumer->msg_format = en_kafka_pb_msg;
-	if(!strcmp(json_object_get_string(js_format), "json")){
+	if(!strcmp(conf.format().data(), "json")){
 		consumer->msg_format = en_kafka_json_msg;
 	}
 
-	if(js_consume_progress_redis){
-		consumer->consume_progress_redis = strdup(json_object_get_string(js_consume_progress_redis));
+	if(conf.has_redis()){
+		consumer->consume_progress_redis = strdup(conf.redis().data());
 	}
 
 	consumer->thread_num = 1;
-	if(js_thread_num){
-		consumer->thread_num = json_object_get_int(js_thread_num);
+	if(conf.has_thread_num()){
+		consumer->thread_num = conf.thread_num();
 		consumer->thread_num = consumer->thread_num<=0?1:consumer->thread_num;
 	}
 
@@ -81,21 +66,17 @@ libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, json_obj
 
 int init_kafka_consumer(server_t* server)
 {
-	json_object* kafka = NULL;
-	json_object_object_get_ex(server->config, "kafka", &kafka);
-	if(NULL == kafka){
+	if(!server->pb_config->has_kafka()){
 		return 0;
 	}
 
-	json_object* consumers = NULL;
-	json_object_object_get_ex(kafka, "consumers", &consumers);
-	if(NULL == consumers){
+	if(!server->pb_config->kafka().consumers_size()){
 		return 0;
 	}
 
-	unsigned size = json_object_array_length(consumers);
+	unsigned size = server->pb_config->kafka().consumers_size(); 
 	for(unsigned i = 0; i < size; ++i){
-		json_object* inst = json_object_array_get_idx(consumers, i);
+		const blink::pb_kafka_consumer& inst = server->pb_config->kafka().consumers(i);
 		libsrvkit_kafka_consumer_t* consumer = libsrvkit_malloc_consumer(server, inst);
 		if(NULL == consumer){
 			LOG_ERR("failed to create kafka consumer:%d", i);
@@ -110,21 +91,17 @@ int init_kafka_consumer(server_t* server)
 
 int init_kafka_producer(server_t* server)
 {
-	json_object* kafka = NULL;
-	json_object_object_get_ex(server->config, "kafka", &kafka);
-	if(NULL == kafka){
+	if(!server->pb_config->has_kafka()){
 		return 0;
 	}
 
-	json_object* producers = NULL;
-	json_object_object_get_ex(kafka, "producers", &producers);
-	if(!producers){
+	if(!server->pb_config->kafka().producers_size()){
 		return 0;
 	}
 
-	unsigned size = json_object_array_length(producers);
+	unsigned size = server->pb_config->kafka().producers_size();
 	for(unsigned i = 0; i < size; ++i){
-		json_object* inst = json_object_array_get_idx(producers, i);
+		const blink::pb_kafka_producer& inst = server->pb_config->kafka().producers(i);
 		libsrvkit_kafka_produecer_t* producer = libsrvkit_malloc_producer(server, inst);
 		if(NULL == producer){
 			LOG_ERR("failed to create kafka producer:%d", i);
@@ -146,40 +123,22 @@ void run_kafka_consumers(server_t* server)
 	}
 }
 
-libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, json_object* conf)
+libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, const blink::pb_kafka_producer& conf)
 {
-	json_object* js_broker_list = NULL;
-	json_object_object_get_ex(conf, "broker_list", &js_broker_list);
-	if(NULL == js_broker_list){
+	if(!conf.broker_list().size()){
 		LOG_ERR("miss broker list in kafka producer config");
 		return NULL;
 	}
 
-	json_object* js_producer_id = NULL;
-	json_object_object_get_ex(conf, "id", &js_producer_id);
-	if(NULL == js_producer_id){
+	if(!conf.id().size()){
 		LOG_ERR("miss producer id in kafka producer config");
 		return NULL;
 	}
 
-	json_object* js_topics = NULL;
-	json_object_object_get_ex(conf, "topics", &js_topics);
-	if(NULL == js_topics || !json_object_array_length(js_topics)){
+	if(!conf.topics_size()){
 		LOG_ERR("miss topics in kafka producer config");
 		return NULL;
 	}
-
-	json_object* js_format = NULL;
-	json_object_object_get_ex(conf, "format", &js_format);
-
-	json_object* js_produce_progress_redis = NULL;
-	json_object_object_get_ex(conf, "redis", &js_produce_progress_redis);
-
-	json_object* js_thread_num = NULL;
-	json_object_object_get_ex(conf, "thread_num", &js_thread_num);
-
-	json_object* js_max_queue_size = NULL;
-	json_object_object_get_ex(conf, "max_queue_size", &js_max_queue_size);
 
 	libsrvkit_kafka_produecer_t* producer = (libsrvkit_kafka_produecer_t*)calloc(1, sizeof(libsrvkit_kafka_produecer_t));
 	if(NULL == producer){
@@ -188,24 +147,23 @@ libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, json_ob
 	}
 
 	producer->server = server;
-	producer->broker_list = strdup(json_object_get_string(js_broker_list));
-	producer->producer_id = strdup(json_object_get_string(js_producer_id));
+	producer->broker_list = strdup(conf.broker_list().data());
+	producer->producer_id = strdup(conf.id().data());
 	producer->max_queue_size = 100000;
-	if(js_max_queue_size && json_object_get_int(js_max_queue_size) > 0){
-		producer->max_queue_size = json_object_get_int(js_max_queue_size);
+	if(conf.max_queue_size() > 0){
+		producer->max_queue_size = conf.max_queue_size();
 	}
 
-	unsigned size = json_object_array_length(js_topics);
+	unsigned size = conf.topics_size();
 	producer->topics = (char**)calloc(size, sizeof(char*));
 	for(unsigned i = 0; i < size; ++i){
-		(producer->topics)[i] = strdup(json_object_get_string(json_object_array_get_idx(js_topics, i)));
+		(producer->topics)[i] = strdup(conf.topics(i).data());
 	}
 	producer->num_topics = size;
 
 	producer->thread_num = 1;
-	if(js_thread_num){
-		producer->thread_num = json_object_get_int(js_thread_num);
-		producer->thread_num = producer->thread_num<=0?1:producer->thread_num;
+	if(conf.thread_num()){
+		producer->thread_num = conf.thread_num();
 	}
 
 	producer->queue_size = (int*)calloc(producer->thread_num, sizeof(int));
@@ -219,12 +177,12 @@ libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, json_ob
 	}
 
 	producer->msg_format = en_kafka_pb_msg;
-	if(!strcmp(json_object_get_string(js_format), "json")){
+	if(!strcmp(conf.format().data(), "json")){
 		producer->msg_format = en_kafka_json_msg;
 	}
 
-	if(js_produce_progress_redis){
-		producer->produce_progress_redis= strdup(json_object_get_string(js_produce_progress_redis));
+	if(conf.redis().size()){
+		producer->produce_progress_redis= strdup(conf.redis().data());
 	}
 
 

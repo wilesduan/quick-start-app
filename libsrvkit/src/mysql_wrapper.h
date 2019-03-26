@@ -6,6 +6,7 @@
 #include <json.h>
 #include <rbtree.h>
 #include <async_task.h>
+#include <config.pb.h>
 
 enum mysql_wrapper_type
 {
@@ -130,7 +131,7 @@ int mysql_result_bind_binary(mysql_query_t* query, char* binary, my_bool* is_nul
 int execute_mysql_query(mysql_query_t* query);
 int execute_query(mysql_query_t* query);
 
-int init_wrapper_with_config(mysql_wrapper_t* wrapper, json_object* conf);
+int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_config& pb_mysql);
 int connect_2_mysql_inst(mysql_conn_inst_t* inst);
 /*
 int set_mysql_bind_int_32(MYSQL_BIND* bind, const char* column, const int* value)

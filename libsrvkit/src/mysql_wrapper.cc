@@ -78,24 +78,19 @@ static mysql_conn_inst_t* get_mysql_conn_inst(mysql_wrapper_t* wrapper, const ch
 }
 
 //static int parse_mysql_url(const char* url, mysql_inst_t* inst);
-int init_wrapper_with_config(mysql_wrapper_t* wrapper, json_object* conf)
+int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_config& pb_mysql)
 {
 	wrapper->type = EN_MYSQL_WRAPPER_TYPE_SHARD;
-	json_object* js_type = NULL;
-	if(json_object_object_get_ex(conf, "type", &js_type)){
-		const char* type = json_object_get_string(js_type);
-		if(strcmp(type, "fabric") == 0){
-			wrapper->type = EN_MYSQL_WRAPPER_TYPE_FABRIC;
-		}
+	if(strcmp(pb_mysql.type().data(), "fabric") == 0){
+		wrapper->type = EN_MYSQL_WRAPPER_TYPE_FABRIC;
 	}
 
-	json_object* js_hosts = NULL;
-	if(!json_object_object_get_ex(conf, "hosts", &js_hosts)){
+	if(!pb_mysql.hosts_size()){
 		LOG_ERR("no mysql hosts in config");
 		return 0;
 	}
 
-	wrapper->num_instances = json_object_array_length(js_hosts);
+	wrapper->num_instances = pb_mysql.hosts_size();
 	if(0 == wrapper->num_instances){
 		LOG_ERR("no mysql hosts in config");
 		return 0;
@@ -104,67 +99,29 @@ int init_wrapper_with_config(mysql_wrapper_t* wrapper, json_object* conf)
 	int has_failed = 0;
 	wrapper->instances = (mysql_inst_t*)calloc(wrapper->num_instances, sizeof(mysql_inst_t));
 	for(size_t i = 0; i < wrapper->num_instances; ++i){
-		json_object* js_host = json_object_array_get_idx(js_hosts, i);
-
-		json_object* js_id = NULL;
-		json_object_object_get_ex(js_host, "id", &js_id);
-
-		json_object* js_user = NULL;
-		json_object_object_get_ex(js_host, "user", &js_user);
-
-		json_object* js_passwd = NULL;
-		json_object_object_get_ex(js_host, "passwd", &js_passwd);
-
-		json_object* js_ip = NULL;
-		json_object_object_get_ex(js_host, "ip", &js_ip);
-
-		json_object* js_port = NULL;
-		json_object_object_get_ex(js_host, "port", &js_port);
-		
-		json_object* js_charset = NULL;
-		json_object_object_get_ex(js_host, "charset", &js_charset);
-
-		json_object* js_max_pending = NULL;
-		json_object_object_get_ex(js_host, "pending", &js_max_pending);
-
-		json_object* js_uts = NULL;
-		json_object_object_get_ex(js_host, "uts", &js_uts);
-
-		json_object* js_dbname = NULL;
-		json_object_object_get_ex(js_host, "dbname", &js_dbname);
-		if(NULL == js_user || NULL == js_passwd || NULL == js_ip || NULL == js_port || NULL == js_dbname){
-			LOG_ERR("mysql config miss parameter.");
+		const blink::pb_mysql_host& mysql_host = pb_mysql.hosts(i);
+		if(!mysql_host.user().size() || !mysql_host.passwd().size() || !mysql_host.ip().size() || !mysql_host.port() || !mysql_host.dbname().size()){
+			LOG_ERR("mysql config miss parameter.host:%s", mysql_host.ShortDebugString().data());
 			has_failed = -1;
 			continue;
 		}
 
 		mysql_inst_t* inst = wrapper->instances+i;
-		inst->id = js_id?strdup(json_object_get_string(js_id)):NULL;
-		inst->dbname = strdup(json_object_get_string(js_dbname));
-		inst->charset = js_charset?strdup(json_object_get_string(js_charset)):NULL;
-        inst->uts = js_uts?json_object_get_int64(js_uts):0;
+		inst->id = mysql_host.id().size()?strdup(mysql_host.id().data()):NULL;
+		inst->dbname = strdup(mysql_host.dbname().data());
+		inst->charset = mysql_host.charset().size()?strdup(mysql_host.charset().data()):NULL;
+        inst->uts = mysql_host.uts();
 
-		const char* host = json_object_get_string(js_ip);
-		int port = json_object_get_int(js_port);
-		const char* user = json_object_get_string(js_user);
-		const char* passwd = json_object_get_string(js_passwd);
-		int max_pending_query = js_max_pending?json_object_get_int(js_max_pending):1000;
+		const char* host = mysql_host.ip().data();
+		int port = mysql_host.port();
+		const char* user = mysql_host.user().data();
+		const char* passwd = mysql_host.passwd().data();
+		int max_pending_query = mysql_host.pending();
 
 		inst->conn_inst = get_mysql_conn_inst(wrapper, host, port, user, passwd, max_pending_query);
 		if(NULL == inst->conn_inst){
 			has_failed = -2;
 		}
-
-#if 0
-		inst->host = strdup(json_object_get_string(js_ip));
-		inst->port = json_object_get_int(js_port);
-		inst->user = strdup(json_object_get_string(js_user));
-		inst->password = strdup(json_object_get_string(js_passwd));
-		rc = connect_2_mysql_inst(wrapper->instances+i);
-		if(rc){
-			has_failed = -2;
-		}
-#endif
 	}
 
 	return has_failed;
@@ -998,7 +955,7 @@ MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* ctx, const char* id)
 	return &(inst->conn_inst->mysql);
 }
 
-int connect_2_mysql(worker_thread_t* wt, json_object* config)
+int connect_2_mysql(worker_thread_t* wt, const blink::pb_mysql_config & mysql_config)
 {
-	return init_wrapper_with_config(&(wt->mysql_wrapper), config);
+	return init_wrapper_with_config(&(wt->mysql_wrapper), mysql_config);
 }

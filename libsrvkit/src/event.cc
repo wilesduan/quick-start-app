@@ -254,6 +254,7 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 				proto_client_inst_t* inst = client->cli_inst_s + i;
 				if(inst->ptr == ptr){
 					--(ptr->num_async_out);
+					--co->batch_req_num;
 					fail_circuit_breaker(ptr?ptr->breaker:NULL);
 					break;
 				}

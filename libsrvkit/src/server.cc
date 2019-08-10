@@ -773,6 +773,11 @@ static int fn_on_recv_msg_from_pipe(void* arg)
 					async_fin_http_request(ctx);
 				}
 				break;
+			case K_CMD_NOTIFY_ASYNC_KAFKA_FIN:
+				{
+					rpc_ctx_t* ctx = (rpc_ctx_t*)cmd.arg;
+					async_fin_kafka_dr(ctx);
+				}
 			default:
 				if(worker->wt_fns.do_recv_notify){
 					(worker->wt_fns.do_recv_notify)(worker, cmd);

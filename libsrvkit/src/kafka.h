@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <config.pb.h>
+#include <async_task.h>
 
 enum kafka_msg_format
 {
@@ -24,6 +25,7 @@ typedef struct libsrvkit_kafka_consumer_t
 	int thread_num;
 	pthread_t* threads;
 	list_head list;
+	async_routine_t* async_progress;
 }libsrvkit_kafka_consumer_t;
 
 typedef struct rd_kafka_producer_req_t
@@ -32,7 +34,25 @@ typedef struct rd_kafka_producer_req_t
 	char* payload;
 	size_t len;
 	list_head req_list;
+	rpc_ctx_t* ctx;
+	bool sync;
 }rd_kafka_producer_req_t;
+
+typedef struct rd_kafka_opaque_t
+{
+	worker_thread_t* dummy_worker;
+	rpc_ctx_t* ctx;
+	bool sync;
+	async_routine_t* async_progress;
+}rd_kafka_opaque_t;
+
+typedef struct progress_data_t
+{
+	worker_thread_t* worker;
+	char key[64];
+	int last_offset;
+	uint64_t last_update_time;
+}progress_data_t;
 
 typedef struct libsrvkit_kafka_produecer_t
 {
@@ -51,6 +71,8 @@ typedef struct libsrvkit_kafka_produecer_t
 	list_head* req_queue;
 	pthread_mutex_t* mutexs;
 	sem_t* sem_ids;
+
+	async_routine_t* async_progress;
 
 	list_head list;
 }libsrvkit_kafka_produecer_t;
@@ -74,5 +96,6 @@ void run_kafka_producers(server_t* server);
 int produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len); 
 
 int fn_on_recv_kafka_msg(void* arg);
+void async_fin_kafka_dr(rpc_ctx_t* ctx);
 #endif//__LIBSRVKIT_KAFKA_H__
 

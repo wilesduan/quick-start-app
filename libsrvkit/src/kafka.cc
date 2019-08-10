@@ -5,10 +5,13 @@
 #include <map>
 #include <redis.h>
 #include <stdarg.h>
+#include <server_inner.h>
 
 static void run_one_consumer(libsrvkit_kafka_consumer_t* consumer);
 static void run_one_producer(libsrvkit_kafka_produecer_t* producer);
 static void call_progress_reids(worker_thread_t* dummy_worker, const char* fmt, ...);
+static void notify_worker_dr_finished(rpc_ctx_t* ctx);
+static int fn_upload_progress(void* data);
 
 libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const blink::pb_kafka_consumer& conf)
 {
@@ -60,6 +63,7 @@ libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const bl
 
 	consumer->threads = (pthread_t*)calloc(consumer->thread_num, sizeof(pthread_t));
 	INIT_LIST_HEAD(&consumer->list);
+	consumer->async_progress = malloc_async_routines(1, 1000); 
 	return consumer;
 }
 
@@ -185,9 +189,9 @@ libsrvkit_kafka_produecer_t* libsrvkit_malloc_producer(server_t* server, const b
 		producer->produce_progress_redis= strdup(conf.redis().data());
 	}
 
-
 	producer->threads = (pthread_t*)calloc(producer->thread_num, sizeof(pthread_t));
 	INIT_LIST_HEAD(&producer->list);
+	producer->async_progress = malloc_async_routines(1, 1000);
 	return producer;
 }
 
@@ -275,6 +279,24 @@ static void notify_worker_kafka_msg(libsrvkit_kafka_consumer_t* consumer, const 
 	LOG_DBG("notify kafka msg to worker:%d:%llu", idx, (long long unsigned)wt);
 }
 
+static void notify_worker_dr_finished(rpc_ctx_t* ctx)
+{
+	cmd_t cmd;
+	cmd.cmd = K_CMD_NOTIFY_ASYNC_KAFKA_FIN;
+	cmd.arg = ctx;
+	if(notify_worker((worker_thread_t*)(ctx->co->worker), cmd)){
+		LOG_ERR("[ALARM] FATAL failed to notify async kafka");
+	}
+}
+
+void async_fin_kafka_dr(rpc_ctx_t* ctx)
+{
+	LOG_DBG("fin kafka dr");
+	coroutine_t* co = ctx->co;
+	co_resume(co);
+	co_release(&co);
+}
+
 static void msg_consume (libsrvkit_kafka_consumer_t* consumer, rd_kafka_message_t *rkmessage, void *opaque) 
 {
 	if (rkmessage->err) {
@@ -293,7 +315,18 @@ static void msg_consume (libsrvkit_kafka_consumer_t* consumer, rd_kafka_message_
 
 	LOG_INFO("RDKAFKA Message (topic %s [%d] offset %llu %zd bytes", rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, rkmessage->len);
 	notify_worker_kafka_msg(consumer, rkmessage->payload, rkmessage->len);
-	call_progress_reids((worker_thread_t*)opaque, "hmset kafka_consume_offset_%s_%s_%d last_offset %d last_update_time %lld", consumer->group_id, rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, time(NULL));
+
+	progress_data_t* progress = (progress_data_t*)calloc(1, sizeof(progress_data_t));
+	progress->worker = (worker_thread_t*)opaque;
+	snprintf(progress->key, sizeof(progress->key), "kafka_consume_offset_%s_%s_%d", consumer->group_id, rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition);
+	progress->last_offset = rkmessage->offset;
+	progress->last_update_time = time(NULL);
+	int rc = add_task_2_routine(consumer->async_progress, fn_upload_progress, progress);
+	if(rc){
+		LOG_ERR("[ALARM] failed to update progress");
+		free(progress);
+	}
+	//call_progress_reids((worker_thread_t*)opaque, "hmset kafka_consume_offset_%s_%s_%d last_offset %d last_update_time %lld", consumer->group_id, rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, time(NULL));
 }
 
 static void* pthread_kafka_consumer(void* arg)
@@ -380,6 +413,7 @@ end:
 
 static void run_one_consumer(libsrvkit_kafka_consumer_t* consumer)
 {
+	run_async_routines(consumer->async_progress, 1);
 	for(int i = 0; i < consumer->thread_num; ++i){
 		pthread_create(&(consumer->threads[i]), NULL, pthread_kafka_consumer, consumer);
 	}
@@ -397,18 +431,41 @@ static void free_rd_kafka_producer_req(rd_kafka_producer_req_t* req)
 	free(req);
 }
 
+static int fn_upload_progress(void* data)
+{
+	progress_data_t* progress = (progress_data_t*)data;
+	call_progress_reids(progress->worker, "hmset %s last_offset %d last_update_time %llu", progress->key,  progress->last_offset, progress->last_update_time);
+	free(progress);
+	return 0;
+}
+
 static void dr_msg_cb (rd_kafka_t *rk,const rd_kafka_message_t *rkmessage, void *opaque)
 {
+	rd_kafka_opaque_t* op = (rd_kafka_opaque_t*)opaque;
+	if(op->sync){
+		op->ctx->co->sys_code = rkmessage->err;
+		notify_worker_dr_finished(op->ctx);
+	}
+
+	worker_thread_t* dummy_worker= op->dummy_worker;
+	async_routine_t* async_progress = op->async_progress;
+	free(op);
 	if(rkmessage->err){
 		LOG_ERR("Message delivery failed: %s", rd_kafka_err2str(rkmessage->err));
 		return;
 	}
 
 	LOG_INFO("Message delivered (topic:%s, %zd bytes, partition %d, offset:%d)", rd_kafka_topic_name(rkmessage->rkt), rkmessage->len, rkmessage->partition, rkmessage->offset);
-
-	//TODO call redis
-	worker_thread_t* dummy_worker= (worker_thread_t*)opaque;
-	call_progress_reids(dummy_worker, "hmset kafka_publish_offset_%s_%d last_offset %d last_update_time %lld", rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, time(NULL));
+	progress_data_t* progress = (progress_data_t*)calloc(1, sizeof(progress_data_t));
+	progress->worker = dummy_worker;
+	snprintf(progress->key, sizeof(progress->key), "hmset kafka_publish_offset_%s_%d", rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition);
+	progress->last_offset = rkmessage->offset;
+	progress->last_update_time = time(NULL);
+	int rc = add_task_2_routine(async_progress, fn_upload_progress, progress);
+	if(rc){
+		LOG_ERR("[ALARM] failed to update progress");
+		free(progress);
+	}
 }
 
 static void* pthread_kafka_producer(void* arg)
@@ -483,15 +540,28 @@ static void* pthread_kafka_producer(void* arg)
 			continue;
 		}
 		rkt = rkts[topic];
+		bool do_retry = true;
+		rd_kafka_opaque_t* opaque = (rd_kafka_opaque_t*)calloc(1, sizeof(rd_kafka_opaque_t));
+		opaque->dummy_worker = &dummy_worker;
+		opaque->ctx = req->ctx;
+		opaque->sync = req->sync;
+		opaque->async_progress = producer->async_progress;
 retry:
-		if (rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, req->payload, req->len, NULL, 0, &dummy_worker) == -1){
+		if (rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, req->payload, req->len, NULL, 0, opaque) == -1){
 			LOG_ERR("Failed to produce to topic %s: %s", rd_kafka_topic_name(rkt), rd_kafka_err2str(rd_kafka_last_error()));
-			if (rd_kafka_last_error() ==RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+			if (rd_kafka_last_error() ==RD_KAFKA_RESP_ERR__QUEUE_FULL && do_retry) {
 				rd_kafka_poll(rk, 1000/*block for max 1000ms*/);
+				do_retry = false;
 				goto retry;
 			}
 			if(req->payload)
 				free(req->payload);
+
+			free(opaque);
+			if(req->sync){
+				req->ctx->co->sys_code = rd_kafka_last_error();
+				notify_worker_dr_finished(req->ctx);
+			}
 		}else{
 			LOG_INFO("Enqueued message (%zd bytes) for topic:%s", req->len, rd_kafka_topic_name(rkt));
 		}
@@ -513,12 +583,13 @@ end:
 
 static void run_one_producer(libsrvkit_kafka_produecer_t* producer)
 {
+	run_async_routines(producer->async_progress, 1);
 	for(int i = 0; i < producer->thread_num; ++i){
 		pthread_create(&(producer->threads[i]), NULL, pthread_kafka_producer, producer);
 	}
 }
 
-static int put_data_to_queue(libsrvkit_kafka_produecer_t* producer, const char* topic, const char* payload, size_t len)
+static int put_data_to_queue(rpc_ctx_t* ctx, bool sync, libsrvkit_kafka_produecer_t* producer, const char* topic, const char* payload, size_t len)
 {
 	if(strlen(topic) >= sizeof(((rd_kafka_producer_req_t*)0)->sz_topic)){
 		LOG_ERR("topic:%s too long", topic);
@@ -537,6 +608,8 @@ static int put_data_to_queue(libsrvkit_kafka_produecer_t* producer, const char* 
 	req->payload = (char*)malloc(len);
 	INIT_LIST_HEAD(&req->req_list);
 	memcpy(req->payload, payload, len);
+	req->ctx = ctx;
+	req->sync = sync; 
 
 	pthread_mutex_lock(producer->mutexs + idx);
 	list_add_tail(&req->req_list, (producer->req_queue+idx));
@@ -547,7 +620,7 @@ static int put_data_to_queue(libsrvkit_kafka_produecer_t* producer, const char* 
 	return 0;
 }
 
-int produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len)
+int produce_kafka_msg(rpc_ctx_t* ctx, bool sync, const char* producer_id, const char* topic, const char* payload, size_t len)
 {
 	server_t* server = (server_t*)(((worker_thread_t*)ctx->co->worker)->mt);
 	libsrvkit_kafka_produecer_t* producer = NULL;
@@ -565,7 +638,17 @@ int produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic
 		return -1;
 	}
 
-	return put_data_to_queue(producer, topic, payload, len);
+	sync = sync && ctx->co && ctx->co->pre;
+	int rc = put_data_to_queue(ctx, sync, producer, topic, payload, len);
+	if(rc){
+		return rc;
+	}
+
+	if(sync){
+		co_yield(ctx->co);
+	}
+
+	return ctx->co->sys_code;
 }
 
 static void call_progress_reids(worker_thread_t* dummy_worker, const char* fmt, ...)

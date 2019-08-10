@@ -620,7 +620,7 @@ static int put_data_to_queue(rpc_ctx_t* ctx, bool sync, libsrvkit_kafka_produece
 	return 0;
 }
 
-int produce_kafka_msg(rpc_ctx_t* ctx, bool sync, const char* producer_id, const char* topic, const char* payload, size_t len)
+static int produce_kafka_msg(rpc_ctx_t* ctx, bool sync, const char* producer_id, const char* topic, const char* payload, size_t len)
 {
 	server_t* server = (server_t*)(((worker_thread_t*)ctx->co->worker)->mt);
 	libsrvkit_kafka_produecer_t* producer = NULL;
@@ -649,6 +649,16 @@ int produce_kafka_msg(rpc_ctx_t* ctx, bool sync, const char* producer_id, const 
 	}
 
 	return ctx->co->sys_code;
+}
+
+int async_produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len)
+{
+	return produce_kafka_msg(ctx, false, producer_id, topic, payload, len);
+}
+
+int sync_produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len)
+{
+	return produce_kafka_msg(ctx, true, producer_id, topic, payload, len);
 }
 
 static void call_progress_reids(worker_thread_t* dummy_worker, const char* fmt, ...)

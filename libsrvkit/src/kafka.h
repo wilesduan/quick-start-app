@@ -93,7 +93,8 @@ int init_kafka_producer(server_t* server);
 void run_kafka_consumers(server_t* server);
 void run_kafka_producers(server_t* server);
 
-int produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len); 
+int async_produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len); 
+int sync_produce_kafka_msg(rpc_ctx_t* ctx, const char* producer_id, const char* topic, const char* payload, size_t len); 
 
 int fn_on_recv_kafka_msg(void* arg);
 void async_fin_kafka_dr(rpc_ctx_t* ctx);

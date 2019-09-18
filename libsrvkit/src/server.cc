@@ -153,6 +153,7 @@ server_t* malloc_server(int argc, char** argv)
 
 static void do_signal(int signum)
 {
+	LOG_INFO("recv signal:%d\n", signum);
 	switch(signum){
 		case SIGTERM:
 		case SIGQUIT:
@@ -162,7 +163,6 @@ static void do_signal(int signum)
 			break;
 	}
 
-	//printf("recv term signal\n");
 }
 
 static void add_signal_fd(server_t* server)
@@ -170,6 +170,7 @@ static void add_signal_fd(server_t* server)
 	signal(SIGTERM, do_signal);
 	signal(SIGQUIT, do_signal);
 	signal(SIGUSR1, do_signal);
+	signal(SIGPIPE,SIG_IGN);
 
 	/*
 	sigset_t mask;
@@ -218,15 +219,16 @@ static int init_server(server_t* server)
 	server->appname = g_app_name;
 
 	server->max_conns_per_worker = server->pb_config->max_conns_per_worker();
+	server->epoll_fd = epoll_create(1024);
+	run_async_connector(server);
 
 	/*****i don't know why:if no the following lines signalfd *******/
+	/*
 	signal(SIGTERM, do_signal);
 	signal(SIGQUIT, do_signal);
 	signal(SIGUSR1, do_signal);
 	signal(SIGPIPE,SIG_IGN);
 
-	server->epoll_fd = epoll_create(1024);
-	run_async_connector(server);
 	
 	sigset_t mask;
 	sigemptyset(&mask);
@@ -245,6 +247,7 @@ static int init_server(server_t* server)
 	ptr->arg = server;
 
 	add_read_ev(server->epoll_fd, ptr);
+	*/
 
 	int rc = do_listen(server);
 	if(rc){

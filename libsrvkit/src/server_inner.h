@@ -97,11 +97,8 @@ typedef struct ev_ptr_t
 
 	struct proto_client_inst_t* cli;
 
-	int heartbeat_milli_offset;
-	list_head heartbeat_wheel;
-
-	int idle_milli_offset;
-	list_head idle_time_wheel;
+	timer_event_t heartbeat_timer;
+	timer_event_t idle_timer;
 	size_t idle_time;
 
 	fn_process_request process_handler;
@@ -219,8 +216,7 @@ typedef struct proto_client_inst_t
 	ev_ptr_t* ptr;
 	size_t num_conn_failed;
 
-	int disconnect_milli_offset;
-	list_head disconnected_client_wheel;
+	timer_event_t disconnected_timer;
 
 	en_protocal_type proto_type;
 	en_sock_type sock_type;
@@ -341,14 +337,10 @@ typedef struct worker_thread_t
 	list_head listens;
 	list_head dep_service;
 
-	time_wheel_t timers;
+	time_wheel_t timer;
 
 	uint64_t last_check_timeout_time;//milliseconds
 	size_t next_check_index;
-	list_head* req_co_timeout_wheel;
-	list_head* heartbeat_wheel;
-	list_head* idle_time_wheel;
-	list_head* disconnected_client_wheel;
 
 	redis_client_t redis;
 	mysql_wrapper_t mysql_wrapper;
@@ -504,10 +496,10 @@ void add_read_ev(int epoll_fd, ev_ptr_t* ptr);
 void add_write_ev(int epoll_fd, ev_ptr_t* ptr);
 void clear_ev_ptr(ev_ptr_t* ptr);
 void cancel_write_ev(int epoll_fd, ev_ptr_t* ptr);
-void do_check_co_timeout(worker_thread_t* worker, list_head* node);
-void do_check_heartbeat_timeout(worker_thread_t* worker, list_head* p);
-void do_check_idle_timeout(worker_thread_t* worker, list_head* p);
-void do_check_disconnect_timeout(worker_thread_t* worker, list_head* p);
+void do_check_co_timeout(worker_thread_t* worker, timer_event_t* tm_event);
+void do_check_heartbeat_timeout(worker_thread_t* worker, timer_event_t* tm_event);
+void do_check_idle_timeout(worker_thread_t* worker, timer_event_t* tm_event);
+void do_check_disconnect_timeout(worker_thread_t* worker, timer_event_t* tm_event);
 ev_ptr_t* get_ev_ptr(worker_thread_t* worker,int fd);
 void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int cost, int err_code);
 

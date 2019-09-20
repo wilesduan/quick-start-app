@@ -832,7 +832,7 @@ static int do_redis_cluster_cmd(void* arg)
 		if(nts > ctx->redis_cmds.start_ts+200){
 			redis_ctx->err = 8;
 			redis_ctx->err_str = strdup("drop task");
-			LOG_ERR("redis Task wait:%"PRIu64, nts-ctx->redis_cmds.start_ts);
+			LOG_ERR("redis Task wait:%" PRIu64, nts-ctx->redis_cmds.start_ts);
 			continue;
 		}
 
@@ -901,7 +901,7 @@ static int do_redis_tw_cmd(void* arg)
 		if(nts > ctx->redis_cmds.start_ts+200){
 			redis_ctx->err = 8;
 			redis_ctx->err_str = strdup("drop task");
-			LOG_ERR("redis Task wait:%"PRIu64, nts-ctx->redis_cmds.start_ts);
+			LOG_ERR("redis Task wait:%" PRIu64, nts-ctx->redis_cmds.start_ts);
 			continue;
 		}
 

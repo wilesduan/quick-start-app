@@ -808,21 +808,9 @@ static int init_wt(worker_thread_t* wt, const blink::pb_config* pb_config)
 	wt->wt_co = co_create(NULL, NULL, NULL,  NULL, NULL);
 	assert(wt->wt_co != NULL);
 
-	init_timers(&(wt->timers), do_check_co_timeout, do_check_heartbeat_timeout, do_check_idle_timeout, do_check_disconnect_timeout);
-	wt->req_co_timeout_wheel = (list_head*)calloc(K_MAX_TIMEOUT, sizeof(list_head));
-	wt->heartbeat_wheel = (list_head*)calloc(K_MAX_TIMEOUT, sizeof(list_head));
-	wt->idle_time_wheel = (list_head*)calloc(K_MAX_TIMEOUT, sizeof(list_head));
-	wt->disconnected_client_wheel = (list_head*)calloc(K_MAX_TIMEOUT, sizeof(list_head));
-
+	init_timer(&(wt->timer)); 
 	wt->num_free_ev_ptr = 0;
 	INIT_LIST_HEAD(&(wt->free_ev_ptr_list));
-
-	for(size_t i = 0; i < K_MAX_TIMEOUT; ++i){
-		INIT_LIST_HEAD(wt->req_co_timeout_wheel+i);
-		INIT_LIST_HEAD(wt->heartbeat_wheel+i);
-		INIT_LIST_HEAD(wt->idle_time_wheel+i);
-		INIT_LIST_HEAD(wt->disconnected_client_wheel+i);
-	}
 
 	wt->epoll_fd = epoll_create(10240);
 	pipe(wt->pipefd);
@@ -972,7 +960,7 @@ static void* run_worker(void* arg)
 	worker->cpu_usage = 0;
 	getrusage(RUSAGE_THREAD, &worker->last_st);
 
-	run_timers(&worker->timers);
+	run_timer(&worker->timer);
 	worker->last_check_timeout_time = get_milli_second();
 	worker->next_check_index = 0;
 
@@ -982,7 +970,7 @@ static void* run_worker(void* arg)
 	int n = 0;
 	int i;
 	struct epoll_event* evs = (epoll_event*)calloc(maxevs, sizeof(struct epoll_event));
-	int wait_time = get_next_timeout(&(worker->timers));
+	int wait_time = get_next_timeout(&(worker->timer));
 	while(!worker->exit){
 		n = epoll_wait(worker->epoll_fd, evs, maxevs, wait_time);
         struct epoll_event* ev = NULL;
@@ -1015,7 +1003,7 @@ static void* run_worker(void* arg)
 
 		do_check_timer_v2(worker);
 
-		wait_time = get_next_timeout(&(worker->timers));
+		wait_time = get_next_timeout(&(worker->timer));
 		LOG_DBG("next wait time:%d", wait_time);
 		uint64_t now = get_monotonic_milli_second();
 		if(now > last_tick+10000){

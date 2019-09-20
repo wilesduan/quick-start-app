@@ -47,8 +47,7 @@ coroutine_t* co_create(fn_co_routine pfn, void* arg1, void* arg2, fn_co_recycle 
 	*/
 
 	INIT_LIST_HEAD(&(rt->free_list));
-	INIT_LIST_HEAD(&(rt->req_co_timeout_wheel));
-
+	init_timer_event(&rt->rpc_timer, do_check_co_timeout);
 	return rt;
 }
 
@@ -206,7 +205,7 @@ static void recycle_co(void* recycler, coroutine_t* co)
 	INIT_LIST_HEAD(&co->free_list);
 
 	worker_thread_t* worker = (worker_thread_t*)recycler;
-	del_timeout_event_from_timer(&(worker->timers), &(co->req_co_timeout_wheel));
+	del_timer_event(&(worker->timer), &(co->rpc_timer));
 
 	list_del(&(co->async_req_out_list));
 	INIT_LIST_HEAD(&(co->async_req_out_list));

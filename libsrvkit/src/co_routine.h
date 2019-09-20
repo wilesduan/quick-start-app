@@ -6,6 +6,7 @@
 #include <list.h>
 #include <google/protobuf/message.h>
 #include <swoole_def.h>
+#include <timer_def.h>
 
 struct coroutine_t;
 typedef int (*fn_co_routine)(void* arg1, void* arg2);
@@ -83,8 +84,9 @@ typedef struct coroutine_t
 
 	list_head free_list;
 
-	int req_co_milli_offset;
-	list_head req_co_timeout_wheel;
+	timer_event_t rpc_timer;
+	//int req_co_milli_offset;
+	//list_head req_co_timeout_wheel;
 
 	char swoole_head[sizeof(swoole_head_t)];
 	//void* swoole_head;

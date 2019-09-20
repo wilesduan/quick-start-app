@@ -257,7 +257,7 @@ static int do_read_msg_from_tcp(void* arg)
 		}
 
 		LOG_DBG("add_ev_ptr_2_idle_time_wheel worker:%llu, host:%s:%d fd:%d", (long long unsigned)worker, ptr->ip, ptr->port, ptr->fd);
-		del_idle_event_from_timer(&worker->timers, &(ptr->idle_time_wheel));
+		del_timer_event(&worker->timer, &(ptr->idle_timer));
 		add_ev_ptr_2_idle_time_wheel(worker, ptr);
 
 		fn_process_request handler = ptr->process_handler;
@@ -325,8 +325,9 @@ static int do_recv_from_udp(void* arg)
 	tmp_ptr.arg = worker;
 	inet_ntop(AF_INET, &(addr.sin_addr), tmp_ptr.ip, sizeof(tmp_ptr.ip));
 	tmp_ptr.port = ntohs(addr.sin_port);
-	INIT_LIST_HEAD(&(tmp_ptr.heartbeat_wheel));
-	INIT_LIST_HEAD(&(tmp_ptr.idle_time_wheel));
+	init_timer_event(&(tmp_ptr.heartbeat_timer), do_check_heartbeat_timeout);
+	init_timer_event(&(tmp_ptr.idle_timer), do_check_idle_timeout);
+
 	INIT_LIST_HEAD(&(tmp_ptr.co_list));
 	INIT_LIST_HEAD(&tmp_ptr.free_ev_ptr_list);
 	INIT_LIST_HEAD(&(tmp_ptr.async_req_out_list));
@@ -748,7 +749,7 @@ static proto_client_t* get_proto_client_with_config(worker_thread_t* worker, con
 		(cli->cli_inst_s+i)->sock_type = cli->sock_type;
 		(cli->cli_inst_s+i)->req_queue_size = cli->req_queue_size;
 		(cli->cli_inst_s+i)->breaker_setting = &cli->breaker_setting;
-		INIT_LIST_HEAD(&(cli->cli_inst_s+i)->disconnected_client_wheel);
+		init_timer_event(&(cli->cli_inst_s+i)->disconnected_timer, do_check_disconnect_timeout);
 		if(cli->proto_type == EN_PROTOCAL_HTTP2 ){
 			(cli->cli_inst_s+i)->ssl_cert_path = cli->ssl_cert_path;
 			(cli->cli_inst_s+i)->ssl_cert_key = cli->ssl_cert_key;
@@ -1404,7 +1405,7 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 	for(i = 0; i < ip_ports.size(); ++i){
 		ip = ip_ports[i].first;
 		port = ip_ports[i].second;
-		INIT_LIST_HEAD(&((cli_inst+i)->disconnected_client_wheel));
+		init_timer_event(&(cli_inst+i)->disconnected_timer, do_check_disconnect_timeout);
 		(cli_inst+i)->req_queue_size = cli->req_queue_size;
 		(cli_inst+i)->breaker_setting = &cli->breaker_setting;
 		(cli_inst+i)->timeout = cli->timeout;
@@ -1417,15 +1418,16 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 		for(k = 0; k < (int)(cli->num_clients); ++k){
 			if(strcmp((cli->cli_inst_s+k)->ip, ip) == 0 && (cli->cli_inst_s+k)->port == port){
 				//???del_disconnect_event_from_timer???
-				list_del(&((cli->cli_inst_s+k)->disconnected_client_wheel));
-				INIT_LIST_HEAD(&((cli->cli_inst_s+k)->disconnected_client_wheel));
+				list_del(&((cli->cli_inst_s+k)->disconnected_timer.list));
+				INIT_LIST_HEAD(&((cli->cli_inst_s+k)->disconnected_timer.list));
+
 				list_del(&((cli->cli_inst_s+k)->weight_list));
 				INIT_LIST_HEAD(&((cli->cli_inst_s+k)->weight_list));
 				list_del(&((cli_inst+i)->weight_list));
 
 				memcpy(cli_inst+i, cli->cli_inst_s+k, sizeof(proto_client_inst_t));
 
-				INIT_LIST_HEAD(&((cli_inst+i)->disconnected_client_wheel));
+				init_timer_event(&(cli_inst+i)->disconnected_timer, do_check_disconnect_timeout);
 				INIT_LIST_HEAD(&((cli_inst+i)->weight_list));
 				(cli_inst+i)->weight = (cli->cli_inst_s+k)->weight;
 				put_client_inst_2_weight_list(cli_inst+i, cli, 0);
@@ -1475,7 +1477,7 @@ void update_client_inst(worker_thread_t* worker, String_vector* strings)
 			recycle_ev_ptr((cli->cli_inst_s+i)->ptr);
 		}
 
-		list_del(&((cli->cli_inst_s+i)->disconnected_client_wheel));
+		list_del(&((cli->cli_inst_s+i)->disconnected_timer.list));
 	}
 
 	if(cli->cli_inst_s) free(cli->cli_inst_s);

@@ -388,7 +388,7 @@ static int process_swoole_response(ev_ptr_t* ptr, swoole_head_t* head, char* bod
 	}
 
 	do_fin_request(req_co);
-	del_timeout_event_from_timer(&(worker->timers), &(req_co->req_co_timeout_wheel));
+	del_timer_event(&(worker->timer), &(req_co->rpc_timer));
 
 	printf("////////////////////resume swoole co begin//////////////////\n");
 	co_resume(req_co);

@@ -82,6 +82,7 @@ typedef struct rdkafka_msg_cmd_t
 	int format;
 	char* payload;
 	int len;
+	sem_t* sem;
 }rdkafka_msg_cmd_t;
 
 libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const blink::pb_kafka_consumer& conf);

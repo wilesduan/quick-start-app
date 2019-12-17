@@ -28,6 +28,46 @@ static int do_mkdir(const char* mdir)
 
 	return rc;
 }
+
+static void gen_srv_main_file(const proto_file_t* proto, const char* sz_srv_dir)
+{
+	char sz_filename[1024];
+	strncpy(sz_filename, proto->file_name, sizeof(sz_filename));
+	char* filename = strchr(basename(sz_filename), '.');
+	if(filename) *filename = 0;
+	char sz_file_name[1024];
+	snprintf(sz_file_name, sizeof(sz_file_name), "%s/%s.cc", sz_srv_dir, sz_filename);
+
+	FILE* fp = fopen(sz_file_name, "w");
+	if(NULL == fp){
+		printf("failed to open file:%s\n", sz_file_name);
+		return;
+	}
+
+	fprintf(fp, "\n");
+	fprintf(fp, "#include <server.h>\n");
+	for(size_t i = 0; i < proto->services.size(); ++i){
+		fprintf(fp, "#include <proto_%s_%s.h>\n", proto->package, proto->services[i].name);
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fp, "int main(int argc, char** argv)\n");
+	fprintf(fp, "{\n");
+	fprintf(fp, "    server_t* server = malloc_server(argc, argv);\n");
+	fprintf(fp, "    if(NULL == server){\n");
+	fprintf(fp, "        return 0;\n");
+	fprintf(fp, "    }\n\n");
+	for(size_t i = 0; i < proto->services.size(); ++i){
+		fprintf(fp, "    add_service(server, gen_%s_%s_service());\n", proto->package, proto->services[i].name);
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fp, "    run_server(server);\n");
+	fprintf(fp, "    return 0;\n");
+	fprintf(fp, "}");
+
+}
+
 void gen_src_with_proto(const proto_file_t* proto, const char* out_dir)
 {
 	if(NULL == out_dir){
@@ -83,6 +123,10 @@ void gen_src_with_proto(const proto_file_t* proto, const char* out_dir)
 			return;
 		}
 
+	}
+
+	if(proto->services.size()){
+		gen_srv_main_file(proto, sz_srv_dir);
 	}
 }
 
@@ -749,6 +793,7 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
     
 	fclose(fp);
 }
+
 
 static int gen_srv_content(const proto_file_t* proto, const proto_service_t* service, const char* sz_srv_dir)
 {

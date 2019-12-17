@@ -74,16 +74,16 @@ CXX=g++
 
 ifeq "DEBUG" "no"
 	 VERSION_STR:=---This is a RELEASE version--- 
-	 CC_FLAGS = -fPIC -D_POSIX_MT_ -Wall $(INCLUDE)
+	 CC_FLAGS = -fPIC -D_POSIX_MT_ -Wall -D_GLIBCXX_USE_CXX11_ABI=0 $(INCLUDE)
 else
 	 VERSION_STR:=++++++This is a Debug version++++
-	 CC_FLAGS = -fPIC -D_POSIX_MT_ -g -Wall $(INCLUDE)
+	 CC_FLAGS = -fPIC -D_POSIX_MT_ -g -Wall -D_GLIBCXX_USE_CXX11_ABI=0 $(INCLUDE)
 endif
 
 export GCOV_PREFIX=$(BUILD_OBJ_PATH)
 TEST_SOURCE=$(wildcard ./test/*.cc)
 TEST_DIR=./test
-TEST_CC_FLAGS=-fPIC -D_POSIX_MT_ -Wall -pthread -g -O0 -fprofile-arcs -ftest-coverage -fprofile-dir=. $(MOCKCPP_INCLUDE) $(GTEST_INCLUDE) $(INCLUDE)
+TEST_CC_FLAGS=-fPIC -D_POSIX_MT_ -Wall -D_GLIBCXX_USE_CXX11_ABI=0 -pthread -g -O0 -fprofile-arcs -ftest-coverage -fprofile-dir=. $(MOCKCPP_INCLUDE) $(GTEST_INCLUDE) $(INCLUDE)
 TEST_TMPS=$(TEST_DIR)/*.test $(BUILD_OBJ_PATH)/*.gcno $(BUILD_OBJ_PATH)/*.gcda $(BUILD_OBJ_PATH)/cov.info ./coverage_report
 CODECOV=lcov -b . -d $(BUILD_OBJ_PATH) -c -o $(BUILD_OBJ_PATH)/cov.info  > /dev/null 2>&1 && lcov -q -r $(BUILD_OBJ_PATH)/cov.info '/usr/*' 'test/*' '*/dep_libs/*' -o $(BUILD_OBJ_PATH)/cov.info && lcov -q -l $(BUILD_OBJ_PATH)/cov.info && genhtml -q -o ./coverage_report $(BUILD_OBJ_PATH)/cov.info
 

@@ -33,3 +33,28 @@ message canal_msg
 	optional uint64 ts = 11;
 	optional string type = 12;
 };
+
+/*  canal consumer template
+	package @TODO your_own_package
+	message table_row  //定义表结构，名字可以随便定义
+	{
+	};
+	message canal_data //定义canal数据结构，名字可以随便定义
+	{
+	    optional table_row new = 1;  //修改后的行数据， 类型名和表结构名字保持一致， 变量名必须是new
+		optional table_row old = 2; //修改前的行数据（只含被改变行的数据）， 类型名和表结构名字保持一致, 变量名必须是old
+	};
+
+	message canal_person //为canal处理函数定义变量名，名字可以随便定义, 方法中使用该变量名
+	{
+	    repeated canal_data rows = 1; //类型必须和canal数据结构一致，变量名必须是rows 
+	};
+
+	service canal_consumer
+	{
+         //table:可以不填, 使用前缀匹配原则; database, type为必填项
+	    void [canal(database="test", table="t_person", type="INSERT")]insert_person_row(request canal_person msg) = 1;
+	    void [canal(database="test", table="t_person", type="UPDATE")]update_person_row(request canal_person msg) = 2;
+	}
+
+   */

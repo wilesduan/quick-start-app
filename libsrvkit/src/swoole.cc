@@ -133,7 +133,7 @@ fn_method get_swoole_fn_method(worker_thread_t* worker, const char* service, con
 	return NULL;
 }
 
-int process_swoole_request(ev_ptr_t* ptr, swoole_head_t* head, char* body)
+int process_swoole_request(ev_ptr_t* ptr, swoole_head_t* head, const char* body)
 {
 	char* service = head->cmd + 1;
 	char* method = service;

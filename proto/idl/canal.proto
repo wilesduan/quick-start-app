@@ -1,0 +1,35 @@
+package canal;
+
+message data_kv
+{
+	required string key = 1;
+	required string value = 2;
+};
+
+message data_k_intv
+{
+	required string key = 1;
+	required int64 value = 2;
+};
+
+message data_element
+{
+	repeated data_kv ele = 1;
+	repeated data_kv old_ele = 2;
+};
+
+message canal_msg
+{
+	repeated data_element data = 1;
+	optional string database = 2;
+	optional uint64 es = 3;
+	optional uint64 id = 4;
+	optional bool isDdl = 5;
+	repeated data_kv mysqlType = 6;
+	repeated string pkNames = 7;
+	optional string sql = 8;
+	repeated data_k_intv sqlType = 9;
+	optional string table = 10;
+	optional uint64 ts = 11;
+	optional string type = 12;
+};

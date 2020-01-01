@@ -11,6 +11,7 @@ enum kafka_msg_format
 {
 	en_kafka_pb_msg = 1,
 	en_kafka_json_msg = 2,
+	en_kafka_canal_msg = 3,
 };
 
 typedef struct libsrvkit_kafka_consumer_t

@@ -114,6 +114,7 @@ typedef struct coroutine_t
 	list_head batch_rslt_list;
 	int timeout;
 	int need_trace_point;
+	uint64_t biz_config_version;
 	coroutine_t()
 	{
 		pre = NULL;

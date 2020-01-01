@@ -34,6 +34,7 @@
 #define K_CMD_NOTIFY_ASYNC_REDIS_FIN 5
 #define K_CMD_NOTIFY_ASYNC_HTTP_FIN 6
 #define K_CMD_NOTIFY_ASYNC_KAFKA_FIN 7
+#define K_CMD_NOTIFY_REQ_BIZ_CONF_VERSION 8
 
 
 //#pragma pack(8)
@@ -50,6 +51,18 @@ typedef void(*fn_recv_reload_signal)(server_t* arg);
 typedef void(*fn_on_recv_upd_data)(worker_thread_t* worker, int udp_sock_fd, void* body, sockaddr_in* addr, socklen_t addr_len);
 typedef const char*(*fn_err_code_2_str)(int lang, int err_code);
 typedef int(*fn_method)(ev_ptr_t* ptr, coroutine_t* co);
+typedef void* (*fn_parse_conf)(json_object* js_biz_conf);
+typedef void (*fn_free_conf)(void* biz_conf);
+
+typedef struct biz_conf_fns
+{
+	fn_parse_conf do_parse_conf;
+	fn_free_conf do_free_conf;
+	biz_conf_fns(){
+		do_parse_conf = 0;
+		do_free_conf = 0;
+	}
+}biz_conf_fns;
 
 typedef struct mt_call_backs_t
 {
@@ -61,6 +74,7 @@ typedef struct mt_call_backs_t
 	fn_recv_reload_signal do_recv_reload_signal;
 	fn_on_recv_upd_data do_process_udp_data;
 	fn_method do_process_http_data;
+	biz_conf_fns st_biz_conf_fn;
 	mt_call_backs_t(){
 		do_special_init = 0;
 		do_before_run = 0;
@@ -169,6 +183,12 @@ typedef struct cmd_t
 	int cmd;
 	void* arg;
 }cmd_t;
+
+typedef struct cmd_get_oldest_biz_config_t 
+{
+	sem_t sem;
+	uint64_t biz_config_version;
+}cmd_get_oldest_biz_config_t;
 
 enum en_protocal_type
 {
@@ -307,6 +327,14 @@ typedef struct redis_client_t
 	redis_client_t* redis_4_test;
 }redis_client_t;
 
+
+typedef struct worker_biz_config_version_t
+{
+	uint64_t version;
+	uint64_t cnt;
+	list_head list;
+}worker_biz_config_version_t;
+
 struct http_client_t;
 typedef struct worker_thread_t
 {
@@ -361,6 +389,8 @@ typedef struct worker_thread_t
 	int cpu_usage;
 
 	http_client_t* hc;
+
+	list_head biz_config_versions;
 }worker_thread_t;
 
 typedef void* (*fn_pthread_routine)(void*);
@@ -377,6 +407,10 @@ typedef struct swoole_method_t
 {
 	char* method_name;
 	fn_method method;
+
+	char* database;
+	char* table;
+	char* type;
 }swoole_method_t;
 
 typedef struct service_t
@@ -423,6 +457,10 @@ typedef struct server_t
 {
 	char* appname;
 	json_object* config;
+	json_object* sys_conf;
+	json_object* biz_conf;
+	volatile uint64_t biz_conf_version;
+	volatile void* glb_biz_conf;
 	blink::pb_config* pb_config;
 
 	fn_err_code_2_str fn_code_2_str;
@@ -459,6 +497,10 @@ fn_method get_fn_method(worker_thread_t* worker, const char* name, int method);
 
 //conf.cc
 json_object* load_cfg(const char* cfg);
+void get_worker_oldest_config(worker_thread_t* worker, cmd_get_oldest_biz_config_t* req);
+void wait_worker_release_old_config(worker_thread_t* worker, uint64_t biz_conf_version);
+void incr_worker_biz_config_version(worker_thread_t* worker, uint64_t biz_config_version);
+void decr_worker_biz_config_version(worker_thread_t* worker, uint64_t biz_config_version);
 
 //connector
 void async_conn_server(worker_thread_t* worker, proto_client_inst_t* cli);
@@ -538,7 +580,7 @@ void init_msg_head(blink::MsgHead& head);
 
 //swoole.cc
 void pad_mem_with_iovecs(const std::vector<iovec>& iovs, char* mem, size_t need_len);
-int process_swoole_request(ev_ptr_t* ptr, swoole_head_t* head, char* body);
+int process_swoole_request(ev_ptr_t* ptr, swoole_head_t* head, const char* body);
 int process_swoole_request_from_ev_ptr(ev_ptr_t* ptr);
 void async_swoole_heartbeat(worker_thread_t* worker, ev_ptr_t* ptr);
 int serialize_json_to_send_chain(ev_ptr_t* ptr, coroutine_t* co, int ret_code, ::google::protobuf::Message* msg, const char* err_msg);

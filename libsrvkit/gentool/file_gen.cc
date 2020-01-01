@@ -788,6 +788,18 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 
 		fprintf(fp, "\tservice->swoole_meth[%d].method = fn_swoole_%s_%s;\n", (int)i,service->name, service->methods[i].name);
 		fprintf(fp, "\tservice->swoole_meth[%d].method_name = strdup(\"%s\");\n", (int)i, service->methods[i].name);
+
+		if(service->methods[i].database){
+			fprintf(fp, "\tservice->swoole_meth[%d].database = strdup(\"%s\");\n", (int)i, service->methods[i].database);
+		}
+
+		if(service->methods[i].table){
+			fprintf(fp, "\tservice->swoole_meth[%d].table = strdup(\"%s\");\n", (int)i, service->methods[i].table);
+		}
+
+		if(service->methods[i].type){
+			fprintf(fp, "\tservice->swoole_meth[%d].type = strdup(\"%s\");\n", (int)i, service->methods[i].type);
+		}
 	}
 	fprintf(fp, "\treturn service;\n}\n");
     

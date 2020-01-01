@@ -97,6 +97,8 @@ void co_release(coroutine_t** routine)
 		return;
 	}
 
+	decr_worker_biz_config_version((worker_thread_t*)((*routine)->worker), (*routine)->biz_config_version);
+
 	if((*routine)->pfn_recycle){
 		fn_co_recycle fn = (*routine)->pfn_recycle;
 		void* recycler = (*routine)->recycler;
@@ -291,6 +293,10 @@ coroutine_t* get_co_ctx(worker_thread_t* worker, fn_method fn)
 	co->worker = worker;
 	co->timeout = 0;
 
+	server_t* server = (server_t*)(worker->mt);
+	co->biz_config_version = server->biz_conf_version;
+	incr_worker_biz_config_version(worker, co->biz_config_version);
+
 	return co;
 }
 
@@ -417,3 +423,4 @@ void end_batch_request(coroutine_t* co, std::vector<int>* rets)
 	co->batch_mode = 0;
 	co_free_batch_rslt_list(co);
 }
+

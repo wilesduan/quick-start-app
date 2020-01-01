@@ -22,6 +22,9 @@ int get_lang_by_rpc_ctx(rpc_ctx_t* ctx);
 void add_service(server_t* server, service_t* service);
 int run_server(server_t* server);
 
+void* get_server_biz_conf(server_t* server);
+
+void* get_biz_conf_by_ctx(rpc_ctx_t* ctx);
 void* get_worker_custom_data(rpc_ctx_t* ctx);
 void set_hash_key(rpc_ctx_t* ctx, uint64_t key);
 MYSQL* get_mysql_from_rpc(rpc_ctx_t* rpc, uint64_t shard_key);

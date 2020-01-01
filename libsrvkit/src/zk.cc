@@ -22,6 +22,82 @@ int g_stop_zk_thread = 0;
 static char* get_first_line_content(char* content);
 static void zk_state_watcher(zhandle_t* zkhandle, int type, int state, const char* path, void* ctx);
 
+
+static int restart_server_if_needed(server_t* server, json_object* js_sys_conf)
+{
+	json_object* obj = NULL;
+	json_object_object_get_ex(js_sys_conf, "auto_load", &obj);
+	int auto_load = obj?json_object_get_int(obj):0;
+	if(!auto_load){
+		return 0;
+	}
+
+	//1. compare cfg with old config
+	if(server->sys_conf &&  util_json_object_equal(server->sys_conf, js_sys_conf)){
+		return 0;
+	}
+
+	//2. get zk lock
+	while(1){
+		// /libsrvkit/autoload/service
+		zoo_create(server->zkhandle, "/libsrvkit", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		zoo_create(server->zkhandle, "/libsrvkit/autoload", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		zoo_create(server->zkhandle, "/libsrvkit/autoload/", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		char tmp[256];
+		snprintf(tmp, 256, "/libsrvkit/autoload/%s", g_app_name);
+		int rc = zoo_create(server->zkhandle, tmp, g_ip, strlen(g_ip), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
+		if(rc != ZOK){
+			return 0;
+		}
+		break;
+	}
+
+	g_exit_status = K_EXIT_BY_CONF_CHG;
+	server->exit = 1;
+	g_stop_zk_thread = 1;
+	LOG_INFO("recv new config, process will restart soon");
+	return 1;
+}
+
+int reload_biz_conf_if_needed(server_t* server, json_object* js_biz_conf)
+{
+	json_object* obj = NULL;
+	json_object_object_get_ex(js_biz_conf, "auto_load", &obj);
+	int auto_load = obj?json_object_get_int(obj):0;
+	if(!auto_load){
+		return 0;
+	}
+
+	//1. compare cfg with old config
+	if(server->biz_conf &&  util_json_object_equal(server->biz_conf, js_biz_conf)){
+		return 0;
+	}
+	if(!server->mt_fns.st_biz_conf_fn.do_parse_conf){
+		return 0;
+	}
+
+	void* new_biz_conf = server->mt_fns.st_biz_conf_fn.do_parse_conf(js_biz_conf);
+	if(!new_biz_conf){
+		return 0;
+	}
+
+	volatile void* old_biz_conf = server->glb_biz_conf;
+	server->glb_biz_conf = new_biz_conf;
+
+	++server->biz_conf_version;
+	//2. wait all worker thread release old config
+	for(int i = 0; i < server->num_worker; ++i){
+		wait_worker_release_old_config(server->array_worker+i, server->biz_conf_version);
+	}
+
+	//3. wait all routines release old config
+	if(server->mt_fns.st_biz_conf_fn.do_free_conf){
+		server->mt_fns.st_biz_conf_fn.do_free_conf((void*)old_biz_conf);
+	}
+
+	return 1;
+}
+
 static void sync_config_from_zk(server_t* server)
 {
 	if(!g_zk_config_path){
@@ -49,41 +125,28 @@ static void sync_config_from_zk(server_t* server)
 		return;
 	}
 
-	json_object* obj = NULL;
-	json_object_object_get_ex(js_cfg, "auto_load", &obj);
-	int auto_load = obj?json_object_get_int(obj):0;
-	if(!auto_load){
+	json_object* js_sys_conf = NULL;
+	json_object_object_get_ex(js_cfg, "sys_conf", &js_sys_conf);
+	rc = restart_server_if_needed(server, js_sys_conf);
+	if(rc){
 		json_object_put(js_cfg);
 		return;
 	}
 
-	//1. compare cfg with old config
-	if(server->config &&  util_json_object_equal(server->config, js_cfg)){
+	json_object* js_biz_conf = NULL;
+	json_object_object_get_ex(js_cfg, "biz_conf", &js_biz_conf);
+	rc = reload_biz_conf_if_needed(server, js_biz_conf);
+	if(!rc){
 		json_object_put(js_cfg);
 		return;
 	}
 
-	json_object_put(js_cfg);
-
-	//2. get zk lock
-	while(1){
-		// /libsrvkit/autoload/service
-		zoo_create(server->zkhandle, "/libsrvkit", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-		zoo_create(server->zkhandle, "/libsrvkit/autoload", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-		zoo_create(server->zkhandle, "/libsrvkit/autoload/", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-		char tmp[256];
-		snprintf(tmp, 256, "/libsrvkit/autoload/%s", g_app_name);
-		int rc = zoo_create(server->zkhandle, tmp, g_ip, strlen(g_ip), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
-		if(rc != ZOK){
-			return;
-		}
-		break;
-	}
-
-	g_exit_status = K_EXIT_BY_CONF_CHG;
-	server->exit = 1;
-	g_stop_zk_thread = 1;
-	LOG_INFO("recv new config, process will restart soon");
+	json_object_put(server->config);
+	server->config = js_cfg;
+	server->sys_conf = js_sys_conf;
+	server->biz_conf = js_biz_conf;
+	//pb_conf?
+	return;
 }
 
 #define K_MAX_ZK_PATH_LEN 1024

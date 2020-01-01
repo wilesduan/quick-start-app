@@ -6,6 +6,7 @@
 #include <redis.h>
 #include <stdarg.h>
 #include <server_inner.h>
+#include <canal.h>
 
 static void run_one_consumer(libsrvkit_kafka_consumer_t* consumer);
 static void run_one_producer(libsrvkit_kafka_produecer_t* producer);
@@ -49,6 +50,8 @@ libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const bl
 	consumer->msg_format = en_kafka_pb_msg;
 	if(!strcmp(conf.format().data(), "json")){
 		consumer->msg_format = en_kafka_json_msg;
+	}else if(!strcmp(conf.format().data(), "canal")){
+		consumer->msg_format = en_kafka_canal_msg;
 	}
 
 	if(conf.has_redis()){
@@ -237,15 +240,17 @@ static void rebalance_cb (rd_kafka_t *rk, rd_kafka_resp_err_t err,rd_kafka_topic
 
 static int notify_worker_kafka_msg(sem_t* sem, libsrvkit_kafka_consumer_t* consumer, const void* payload, size_t len)
 {
+	/*
 	char* buff = (char*)malloc(len);
 	if(NULL == buff){
 		return -1;
 	}
+	*/
 
 	rdkafka_msg_cmd_t cmd;
 	cmd.format = consumer->msg_format;
-	cmd.payload = buff;
-	memcpy(cmd.payload, payload, len);
+	cmd.payload = (char*)payload; //buff;
+	//memcpy(cmd.payload, payload, len);
 	cmd.len = len;
 	cmd.sem = sem;
 	int idx = random()%(consumer->server->num_worker);
@@ -261,7 +266,7 @@ static int notify_worker_kafka_msg(sem_t* sem, libsrvkit_kafka_consumer_t* consu
 
 		if(rc < 0){
 			LOG_ERR("write kafka pipe failed");
-			free(buff);
+			//free(buff);
 			return -2;
 		}
 
@@ -742,11 +747,28 @@ int fn_on_recv_kafka_msg(void* arg)
 					//process_swoole_request(ptr, );
 				}
 				break;
+			case en_kafka_canal_msg:
+				{
+					json_tokener *tokener = json_tokener_new();
+					json_object* obj = json_tokener_parse_ex(tokener, (const char*)cmd.payload, (int)cmd.len); 
+					if(!obj){
+						LOG_ERR("failed to parse canal msg:%.*s", cmd.len, (const char*)cmd.payload);
+						json_tokener_free(tokener);
+						break;
+					}
+
+					process_canal_request(ptr, obj);
+
+					json_object_put(obj);
+					json_tokener_free(tokener);
+					//TODO
+				}
+				break;
 			default:
 				break;
 		}
 
-		free(cmd.payload);
+		//free(cmd.payload);
 		sem_post(cmd.sem);
 	}
 	return 0;

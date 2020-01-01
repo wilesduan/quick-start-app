@@ -1,5 +1,15 @@
-
+#include <server.h>
 #include <server_inner.h>
+
+void* get_biz_conf_by_ctx(rpc_ctx_t* ctx)
+{
+	if(NULL == ctx || NULL == ctx->co || NULL == ctx->co->worker){
+		return NULL;
+	}
+
+	worker_thread_t* worker = (worker_thread_t*)(ctx->co->worker);
+	return get_server_biz_conf((server_t*)(worker->mt));
+}
 
 void* get_worker_custom_data(rpc_ctx_t* ctx)
 {

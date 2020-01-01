@@ -130,8 +130,11 @@ server_t* malloc_server(int argc, char** argv)
 	}
 
 	server->config = conf;
+	json_object_object_get_ex(server->config, "sys_conf", &server->sys_conf);
+	json_object_object_get_ex(server->config, "biz_conf", &server->biz_conf);
+	server->biz_conf_version = 1;
 	server->pb_config = new blink::pb_config;
-	int rt = util_parse_pb_from_json(server->pb_config, conf);
+	int rt = util_parse_pb_from_json(server->pb_config, server->sys_conf);
 	if(rt){
 		printf("######failed to parse pb from json######\n");
 	}
@@ -195,6 +198,10 @@ static void add_signal_fd(server_t* server)
 
 static int init_server(server_t* server)
 {
+	if(server->mt_fns.st_biz_conf_fn.do_parse_conf){
+		server->glb_biz_conf = server->mt_fns.st_biz_conf_fn.do_parse_conf(server->biz_conf);
+	}
+
 	if(server->pb_config->sched()){
 		init_sched_cpu_affinity();
 	}
@@ -207,7 +214,7 @@ static int init_server(server_t* server)
 	g_log_trace_point = server->pb_config->trace();
 
 	json_object* log_conf = NULL;
-	json_object_object_get_ex(server->config, "log", &log_conf);
+	json_object_object_get_ex(server->sys_conf, "log", &log_conf);
 	init_logger(log_conf);
 	util_run_logger();
 
@@ -341,6 +348,8 @@ void add_mt_call_backs(server_t* server, mt_call_backs_t mt_fns)
 	if(mt_fns.do_process_http_data){
 		server->mt_fns.do_process_http_data = mt_fns.do_process_http_data;
 	}
+
+	server->mt_fns.st_biz_conf_fn = mt_fns.st_biz_conf_fn;
 }
 
 void add_wt_call_backs(server_t* server, wt_call_backs_t wt_fns)
@@ -407,6 +416,11 @@ int run_server(server_t* server)
 
 	run_child(server);
 	return 0;
+}
+
+void* get_server_biz_conf(server_t* server)
+{
+	return (void*)(server->glb_biz_conf);
 }
 
 static float get_cpu_usage(struct rusage* pre_usage, int who)
@@ -781,6 +795,12 @@ static int fn_on_recv_msg_from_pipe(void* arg)
 					rpc_ctx_t* ctx = (rpc_ctx_t*)cmd.arg;
 					async_fin_kafka_dr(ctx);
 				}
+			case K_CMD_NOTIFY_REQ_BIZ_CONF_VERSION:
+				{
+					cmd_get_oldest_biz_config_t* req = (cmd_get_oldest_biz_config_t*)cmd.arg;
+					get_worker_oldest_config(worker, req);
+				}
+				break;
 			default:
 				if(worker->wt_fns.do_recv_notify){
 					(worker->wt_fns.do_recv_notify)(worker, cmd);
@@ -848,6 +868,7 @@ static int init_wt(worker_thread_t* wt, const blink::pb_config* pb_config)
 	INIT_LIST_HEAD(&(wt->free_co_list));
 	INIT_LIST_HEAD(&(wt->listens));
 	INIT_LIST_HEAD(&(wt->dep_service));
+	INIT_LIST_HEAD(&(wt->biz_config_versions));
 	add_dep_service(wt, pb_config);
 
 	int rc = connect_2_redis(&(wt->redis), pb_config);

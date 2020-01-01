@@ -46,9 +46,9 @@ int process_canal_request(ev_ptr_t* ptr, json_object* obj)
 		return 0;
 	}
 
-	const char* database = js_db?NULL:json_object_get_string(js_db);
-	const char* table = js_table?NULL:json_object_get_string(js_table);
-	const char* type = js_type?NULL:json_object_get_string(js_type);
+	const char* database = js_db?json_object_get_string(js_db):NULL;
+	const char* table = js_table?json_object_get_string(js_table):NULL;
+	const char* type = js_type?json_object_get_string(js_type):NULL;
 
 	worker_thread_t* worker = (worker_thread_t*)(ptr->arg);
 	const char* method = get_canal_method(worker, database, table, type);

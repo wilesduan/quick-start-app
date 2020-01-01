@@ -272,7 +272,7 @@ loop:
 		goto loop;
 	}
 
-	timer->meta.last_check_time = now;
 	LOG_DBG("end:%d, now:%llu, last_check:%llu", timer->meta.cur_milli_second_idx, now, timer->meta.last_check_time);
+	timer->meta.last_check_time = now;
 }
 

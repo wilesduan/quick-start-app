@@ -439,7 +439,7 @@ static void gen_cli_cc_code(const proto_file_t* proto, const proto_service_t* se
 			fprintf(fp, "\tbody.set_service(\"%s\");\n", service->name);
 			fprintf(fp, "\tbody.set_method(%d);\n", method.tag);
 			fprintf(fp, "\tstd::string tmp_payload;\n");
-			fprintf(fp, "\treq->SerializeToString(&tmp_payload);\n");
+			fprintf(fp, "\t%s->SerializeToString(&tmp_payload);\n", method.req->name);
 			fprintf(fp, "\tbody.set_payload(tmp_payload);\n");
 			fprintf(fp, "\tbody.SerializeToString(&str_pb_kafka_msg);\n");
 			fprintf(fp, "\treturn 0;\n");
@@ -763,7 +763,7 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 			fprintf(fp, "\tdo_%s_%s_%s(&ctx, %s);\n", proto->package, service->name, method.name, method.req->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost);\n", service->name, method.name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost, 0);\n", service->name, method.name);
 			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name);
 		}
 		fprintf(fp, "\tdelete %s;\n", method.req->name);

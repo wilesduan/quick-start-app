@@ -41,7 +41,7 @@ message canal_msg
 	};
 	message canal_data //定义canal数据结构，名字可以随便定义
 	{
-	    optional table_row new = 1;  //修改后的行数据， 类型名和表结构名字保持一致， 变量名必须是new
+	    optional table_row row = 1;  //修改后的行数据， 类型名和表结构名字保持一致， 变量名必须是row
 		optional table_row old = 2; //修改前的行数据（只含被改变行的数据）， 类型名和表结构名字保持一致, 变量名必须是old
 	};
 

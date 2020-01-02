@@ -128,7 +128,7 @@ int mysql_result_bind_doulbe(mysql_query_t* query, double* value, my_bool* is_nu
 int mysql_result_bind_str(mysql_query_t* query, char* sz_str, my_bool* is_null, size_t* len, my_bool* error);
 int mysql_result_bind_binary(mysql_query_t* query, char* binary, my_bool* is_null, size_t* len, my_bool* error);
 
-#define DEFINE_MYSQL_ROW_FIELD(type, field)\ type field; my_bool is_##field##_null; is_##field##_error; unsigned long field##_len;
+#define DEFINE_MYSQL_ROW_FIELD(type, field) type field; my_bool is_##field##_null; my_bool is_##field##_error; unsigned long field##_len;
 #define BIND_MYSQL_RESULT(query, row, type, field) mysql_result_bind_##type(query, &row.field, &row.is_##field##_null, &row.field##_len,&row.is_##field##_error);
 #define BIND_MYSQL_RESULT_STR(query, row, field, len) \
 	row.field = new char[len]; \

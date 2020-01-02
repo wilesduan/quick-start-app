@@ -70,7 +70,7 @@ int process_canal_request(ev_ptr_t* ptr, json_object* obj)
 		json_object* js_old_value = js_old?json_object_get(json_object_array_get_idx(js_old, i)):NULL;
 
 		json_object* js_row = json_object_new_object();
-		json_object_object_add(js_row, "new", js_new_value);
+		json_object_object_add(js_row, "row", js_new_value);
 		if(js_old_value){
 			json_object_object_add(js_row, "old", js_old_value);
 		}

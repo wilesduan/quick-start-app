@@ -14,7 +14,7 @@ const char* get_canal_method(worker_thread_t* worker, const char* database, cons
 
 		for(int i = 0; i < svc->num_methods; ++i){
 			if(strcmp(svc->swoole_meth[i].database, database) == 0 
-			   && (svc->swoole_meth[i].table?(strcmp(svc->swoole_meth[i].table, table) == 0):1) 
+			   && (svc->swoole_meth[i].table?(strncmp(svc->swoole_meth[i].table, table, strlen(svc->swoole_meth[i].table)) == 0):1) 
 			   && strcmp(svc->swoole_meth[i].type, type) == 0){
 				return svc->swoole_meth[i].method_name;
 			}

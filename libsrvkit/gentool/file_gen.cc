@@ -780,8 +780,9 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 	fprintf(fp, "\n");
     fprintf(fp, "\tINIT_LIST_HEAD(&service->list);\n");
 	fprintf(fp, "\tservice->name = strdup(\"%s\");\n", service->name);
-	fprintf(fp, "\tservice->num_methods= %d;\n", max_tag);
+	fprintf(fp, "\tservice->num_methods = %d;\n", max_tag);
 	fprintf(fp, "\tservice->methods = (fn_method*)calloc(%d, sizeof(fn_method));\n", max_tag+1);
+	fprintf(fp, "\tservice->num_swoole_methods = %lu;\n", service->methods.size());
 	fprintf(fp, "\tservice->swoole_meth = (swoole_method_t*)calloc(%lu, sizeof(swoole_method_t));\n", service->methods.size());
 	for(size_t i = 0; i < service->methods.size(); ++i){
 		fprintf(fp, "\tservice->methods[%d] = fn_pb_%s_%s;\n\n", service->methods[i].tag,service->name, service->methods[i].name);

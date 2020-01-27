@@ -420,6 +420,8 @@ typedef struct service_t
 	const char* name;
 	int num_methods;
 	fn_method* methods;
+
+	int num_swoole_methods;
 	swoole_method_t* swoole_meth;
 }service_t;
 

@@ -121,8 +121,8 @@ fn_method get_swoole_fn_method(worker_thread_t* worker, const char* service, con
 		}
 
 		size_t cmp_len = 30 - len_service;
-		for(int i = 0; i < svc->num_methods; ++i){
-			if(strncmp(svc->swoole_meth[i].method_name, method_name, cmp_len) == 0){
+		for(int i = 0; i < svc->num_swoole_methods; ++i){
+			if(svc->swoole_meth[i].method_name && strncmp(svc->swoole_meth[i].method_name, method_name, cmp_len) == 0){
 				return svc->swoole_meth[i].method;
 			}
 		}
@@ -466,7 +466,8 @@ int process_swoole_request_from_ev_ptr(ev_ptr_t* ptr)
 		}
 
 		if(rc){
-			return -2;
+			LOG_ERR("process swoole package failed. rc:%d", rc);
+			return 0;
 		}
 	}
 
@@ -599,7 +600,9 @@ static int write_req_2_swoole_server(ev_ptr_t* ptr, coroutine_t* co, uint32_t ss
 	swoole_head_t head;
 	init_swoole_head(&head, (uint32_t)version);
 	head.header_seq = ss_req_id;
-	set_swoole_head_cmd(&head, K_SWOOLE_REQUEST, method);
+	char swoole_method[128];
+	snprintf(swoole_method, sizeof(swoole_method), "%s.%s", service, method);
+	set_swoole_head_cmd(&head, K_SWOOLE_REQUEST, swoole_method);
 
 	blink::SwooleBodyHeader header;
 	header.set_platform("blink");

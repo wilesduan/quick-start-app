@@ -44,7 +44,7 @@ int yylex(void);
 	return PACKAGE;
 }
 
-<_PACKAGE_>[a-zA-Z]+[a-zA-Z0-9]* {
+<_PACKAGE_>[a-zA-Z]+[-_a-zA-Z0-9]* {
 	BEGIN _PACKAGE_NAME_;
 	snprintf(yylval.package, sizeof(yylval.package), "%s", yytext);
 	return PACKAGE_NAME;
@@ -77,7 +77,7 @@ int yylex(void);
 	return IN_DEFINE_OP_TYPE;
 }
 
-<_IN_DEFINE_OP_TYPE_>[a-zA-Z0-9]+ {
+<_IN_DEFINE_OP_TYPE_>[-_a-zA-Z0-9]+ {
 	BEGIN _IN_DEFINE_OP_TAG_;
 	snprintf(yylval.tag, sizeof(yylval.tag), "%s", yytext);
 	return IN_DEFINE_OP_TAG;
@@ -133,7 +133,7 @@ int yylex(void);
 	return IN_DEFINE_COLUMN;
 }
 
-<_IN_DEFINE_COLUMN_>[a-zA-Z0-9]+ {
+<_IN_DEFINE_COLUMN_>[-_a-zA-Z0-9]+ {
 	BEGIN _IN_DEFINE_COLUMN_COLUMN_NAME_;
 	snprintf(yylval.column_name, sizeof(yylval.column_name), "%s", yytext);
 	return IN_DEFINE_COLUMN_COLUMN_NAME;
@@ -174,7 +174,7 @@ int yylex(void);
 	return IN_DEFINE_CONDITION;
 }
 
-<_IN_DEFINE_CONDITION_>[a-zA-Z0-9]+ {
+<_IN_DEFINE_CONDITION_>[-_a-zA-Z0-9]+ {
 	BEGIN _IN_DEFINE_CONDITION_COLUMN_NAME_;
 	snprintf(yylval.column_name, sizeof(yylval.column_name), "%s", yytext);
 	return IN_DEFINE_CONDITION_COLUMN_NAME;
@@ -215,7 +215,7 @@ int yylex(void);
 	return IN_DEFINE_UPDATE;
 }
 
-<_IN_DEFINE_UPDATE_>[a-zA-Z0-9]+ {
+<_IN_DEFINE_UPDATE_>[-_a-zA-Z0-9]+ {
 	BEGIN _IN_DEFINE_UPDATE_COLUMN_NAME_;
 	snprintf(yylval.column_name, sizeof(yylval.column_name), "%s", yytext);
 	return IN_DEFINE_UPDATE_COLUMN_NAME;

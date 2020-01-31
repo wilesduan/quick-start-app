@@ -13,8 +13,26 @@ void usage(char* app)
 	printf("%s -I path -f protofile -o output_dir -t [filetype: orm|proto]\n", app);
 }
 
-static void gen_proto_files(std::vector<char*>& path, std::vector<char*>&files, char* out_dir);
-static void gen_orm_files(std::vector<char*>&files, char* out_dir);
+static void gen_proto_files(std::vector<char*>& path, char* file, char* out_dir);
+
+#define K_FILE_TYPE_PROTO 1
+#define K_FILE_TYPE_ORM 2
+int get_file_type(char* ext, int default_type)
+{
+	if(!ext){
+		return default_type;
+	}
+
+	if(strcmp(ext, ".orm") == 0){
+		return K_FILE_TYPE_ORM;
+	}
+
+	if(strcmp(ext, ".proto") == 0){
+		return K_FILE_TYPE_PROTO;
+	}
+
+	return default_type;
+}
 
 int main(int argc, char** argv)
 {
@@ -64,72 +82,70 @@ int main(int argc, char** argv)
 		}
 	}
 
+	int ftype = K_FILE_TYPE_PROTO;
 	if(file_type && strcmp(file_type, "orm") == 0){
-		gen_orm_files(files, out_dir);
-		return 0;
+		ftype = K_FILE_TYPE_ORM;
+	}
+	
+
+	for(size_t i = 0; i < files.size(); ++i){
+		char* filename = files[i];
+		char* ext = strrchr(filename, '.');
+		int type = get_file_type(ext, ftype);
+		switch(type){
+			case K_FILE_TYPE_PROTO:
+				gen_proto_files(paths, filename, out_dir);
+				break;
+			case K_FILE_TYPE_ORM:
+				gen_orm_with_file(filename, out_dir);
+				break;
+		}
 	}
 
-	gen_proto_files(paths, files, out_dir);
 	return 0;
 }
 
-void gen_proto_files(std::vector<char*>& paths, std::vector<char*>&files, char* out_dir)
+void gen_proto_files(std::vector<char*>& paths, char* file, char* out_dir)
 {
-	std::vector<proto_file_t*> protos;
-	for(size_t i = 0; i < files.size(); ++i){
-		proto_file_t* proto = new proto_file_t;
-		proto->file_name = strdup(files[i]);
-		parse_proto_file(paths, files[i], proto);
-		protos.push_back(proto);
+	proto_file_t* proto = new proto_file_t;
+	proto->file_name = strdup(file);
+	parse_proto_file(paths, file, proto);
+
+	if(proto->syntax){
+		printf("%s", proto->syntax);
 	}
 
-	for(size_t i = 0; i < protos.size(); ++i){
-		proto_file_t* proto = protos[i]; 
-		if(proto->syntax){
-			printf("%s", proto->syntax);
-		}
+	if(proto->package){
+		printf("%s", proto->package);
+	}
 
-		if(proto->package){
-			printf("%s", proto->package);
-		}
+	for(size_t j = 0; j < proto->includes.size(); ++j){
+		char* include = proto->includes[j];
+		printf("import \"%s\"\n", include);
+	}
 
-		for(size_t j = 0; j < proto->includes.size(); ++j){
-			char* include = proto->includes[j];
-			printf("import \"%s\"\n", include);
-		}
-
-		for(size_t j = 0; j < proto->messages.size(); ++j){
-			proto_message_t& message = proto->messages[j];
-			for(size_t k = 0; k < message.lines.size(); ++k){
-				char* line = message.lines[k];
-				printf("%s", line);
-			}
-		}
-
-		for(size_t j = 0; j < proto->services.size(); ++j){
-			proto_service_t& service = proto->services[j];
-			printf("service name:%s\n", service.name);
-			for(size_t k = 0; k < service.methods.size(); ++k){
-				proto_method_t& method = service.methods[k];
-				printf("rettype:%s\n", method.ret_type);
-				printf("name:%s\n", method.name);
-				printf("tag:%d\n", method.tag);
-				printf("request type:%s, var_name:%s\n", method.req->type, method.req->name);
-				if(method.rsp)
-					printf("response type:%s, var_name:%s\n", method.rsp->type, method.rsp->name);
-			}
+	for(size_t j = 0; j < proto->messages.size(); ++j){
+		proto_message_t& message = proto->messages[j];
+		for(size_t k = 0; k < message.lines.size(); ++k){
+			char* line = message.lines[k];
+			printf("%s", line);
 		}
 	}
 
-	for(size_t i = 0; i < protos.size(); ++i){
-		gen_src_with_proto(protos[i], out_dir);
+	for(size_t j = 0; j < proto->services.size(); ++j){
+		proto_service_t& service = proto->services[j];
+		printf("service name:%s\n", service.name);
+		for(size_t k = 0; k < service.methods.size(); ++k){
+			proto_method_t& method = service.methods[k];
+			printf("rettype:%s\n", method.ret_type);
+			printf("name:%s\n", method.name);
+			printf("tag:%d\n", method.tag);
+			printf("request type:%s, var_name:%s\n", method.req->type, method.req->name);
+			if(method.rsp)
+				printf("response type:%s, var_name:%s\n", method.rsp->type, method.rsp->name);
+		}
 	}
+
+	gen_src_with_proto(proto, out_dir);
 }
 
-static void gen_orm_files(std::vector<char*>&files, char* out_dir)
-{
-	for(size_t i = 0; i < files.size(); ++i){
-		char* filename = files[i];
-		gen_orm_with_file(filename, out_dir);
-	}
-}

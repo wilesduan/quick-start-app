@@ -66,7 +66,7 @@ void gen_mysql_orm_functions(const std::string& package, const std::vector<t_mys
 	for(size_t i = 0; i < querys.size(); ++i){
 		const t_mysql_query& query = querys[i];
 		printf("define:%d:%s\n", query.type, query.tag.data());
-		printf("sql:%s\n", query.query.data());
+		printf("sql:%s\n", query.sql.data());
 		for(size_t j = 0; j < query.columns.size(); ++j){
 			const t_field& field = query.columns[j];
 			printf("column:%s:%s\n", field.column_name.data(), field.column_type.data());
@@ -102,6 +102,7 @@ int gen_header_file(const std::string& package, const std::vector<t_mysql_query>
 
 	fprintf(fp, "\n#ifndef __MYSQL_OP_DB_SELECTOR__\n");
 	fprintf(fp, "#define __MYSQL_OP_DB_SELECTOR__\n");
+	fprintf(fp, "#define EN_INVALID_DB_SELECTOR 199999;\n");
 	fprintf(fp, "typedef struct mysql_selector_t\n");
 	fprintf(fp, "{\n");
 	fprintf(fp, "\tconst char* db_id;\n");
@@ -262,7 +263,7 @@ void gen_select_header(FILE* fp, const std::string& package, const t_mysql_query
 	fprintf(fp, "\t}\n");
 	fprintf(fp, "}%s_select_%s_row_t;\n", package.data(), query.tag.data());
 
-	fprintf(fp, "int do_%s_select_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const %s_select_%s_condition_t& condition, std::vector<%s_select_%s_result_t>& results);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_select_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_select_%s_condition_t& condition, std::vector<%s_select_%s_result_t>& results);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 }
 
 void gen_insert_header(FILE* fp, const std::string& package, const t_mysql_query& query)
@@ -281,7 +282,7 @@ void gen_insert_header(FILE* fp, const std::string& package, const t_mysql_query
 	}
 	fprintf(fp, "}%s_insert_%s_update_t;\n", package.data(), query.tag.data());
 
-	fprintf(fp, "int do_%s_insert_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const std::vector<%s_insert_%s_columns_t>& values, const %s_insert_%s_update_t& update_duplicate_columns, int* affect_rows);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_insert_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, std::vector<%s_insert_%s_columns_t>& values, %s_insert_%s_update_t& update_duplicate_columns, int* affect_rows);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 }
 
 void gen_update_header(FILE* fp, const std::string& package, const t_mysql_query& query)
@@ -300,7 +301,7 @@ void gen_update_header(FILE* fp, const std::string& package, const t_mysql_query
 	}
 	fprintf(fp, "}%s_update_%s_condition_t;\n", package.data(), query.tag.data());
 
-	fprintf(fp, "int do_%s_update_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const %s_update_%s_column_t& columns, const %s_update_%s_condition_t& conditions, int* affect_rows);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_update_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_update_%s_column_t& columns, %s_update_%s_condition_t& conditions, int* affect_rows);\n\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 }
 
 int gen_cc_file(const std::string& package, const std::vector<t_mysql_query>& querys, const char* out_dir)
@@ -364,10 +365,10 @@ static void fprintf_bind_condition(FILE* fp, const t_field& field, const char* i
 		case EN_MYSQL_FIELD_STR:
 		case EN_MYSQL_FIELD_VAR_STR:
 		case EN_MYSQL_FIELD_BINARY:
-			fprintf(fp, "%s%s(query, &%s.%s, &%s.%s_len)\n", indent, field_2_str[type].bind_param, name, field.column_name.data(), name, field.column_name.data());
+			fprintf(fp, "%s%s(query, &%s.%s, &%s.%s_len);\n", indent, field_2_str[type].bind_param, name, field.column_name.data(), name, field.column_name.data());
 			break;
 		default:
-			fprintf(fp, "%s%s(query, &%s.%s)\n", indent, field_2_str[type].bind_param, name, field.column_name.data());
+			fprintf(fp, "%s%s(query, &%s.%s);\n", indent, field_2_str[type].bind_param, name, field.column_name.data());
 			break;
 	}
 }
@@ -391,8 +392,15 @@ void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	}
 	fprintf(fp, "}\n\n");
 
-	fprintf(fp, "int do_%s_select_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const %s_select_%s_condition_t& conditions, std::vector<%s_select_%s_result_t>& results)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_select_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_select_%s_condition_t& conditions, std::vector<%s_select_%s_result_t>& results)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
+	if(!query.table.size()){
+		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
+		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
+		fprintf(fp, "\t}\n\n");
+	}
+
 	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
 	fprintf(fp, "\tif(!mysql){\n");
 	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
@@ -400,7 +408,11 @@ void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\t}\n");
 
 	fprintf(fp, "\n\tchar sql[1024];\n");
-	fprintf(fp, "\tsize_t n = selector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\");\n", query.query.data(), query.query.data());
+	if(query.table.size()){
+		fprintf(fp, "\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+	}else{
+		fprintf(fp, "\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
+	}
 	fprintf(fp, "\tmysql_query_t* query = mysql_malloc_query(ctx, mysql, sql);\n");
 	for(size_t i = 0; i < query.conditions.size(); ++i){
 		fprintf_bind_condition(fp, query.conditions[i], "\t", "conditions");
@@ -426,8 +438,15 @@ void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 
 void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& query)
 {
-	fprintf(fp, "int do_%s_insert_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const std::vector<%s_insert_%s_columns_t>& values, const %s_insert_%s_update_t& update_duplicate_columns, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_insert_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, std::vector<%s_insert_%s_columns_t>& values, %s_insert_%s_update_t& update_duplicate_columns, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
+	if(!query.table.size()){
+		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
+		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
+		fprintf(fp, "\t}\n\n");
+	}
+
 	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
 	fprintf(fp, "\tif(!mysql){\n");
 	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
@@ -435,6 +454,7 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\t}\n");
 
 	fprintf(fp, "\n\tchar* sql_buff = NULL;\n");
+	fprintf(fp, "\tsize_t sql_len = 0;\n");
 	fprintf(fp, "\tif(values.size() > 1){\n");
 	fprintf(fp, "\t\t//batch inserting\n");
 	fprintf(fp, "\t\tif(!selector.table){\n");
@@ -463,21 +483,28 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\t\t\t\tsql.append(\",\");\n");
 	fprintf(fp, "\t\t\t}\n");
 	fprintf(fp, "\t\t}\n");
-	const char* on_duplicate_key = strstr(query.query.data(), "on duplicate key update");
+	const char* on_duplicate_key = strstr(query.sql.data(), "on duplicate key update");
 	if(on_duplicate_key){
 		fprintf(fp, "\t\tsql.append(\"%s\");\n", on_duplicate_key);
 	}
 
-	fprintf(fp, "\t\tsql_buff = (char*)calloc(1, sql.size()+64);\n");
-	fprintf(fp, "\t\tsnprintf(sql_buff, sql.size() + 64, sql.data(), selector.table);\n");
+	fprintf(fp, "\t\tsql_len = sql.size()+64;\n");
+	fprintf(fp, "\t\tsql_buff = (char*)calloc(1, sql_len);\n");
+	fprintf(fp, "\t\tsnprintf(sql_buff, sql_len, sql.data(), selector.table);\n");
 	fprintf(fp, "\t}else{\n");
 	fprintf(fp, "\t\tsql_buff = (char*)calloc(1, 1024);\n");
-	fprintf(fp, "\t\tsize_t n = selector.table?snprintf(sql_buff, sizeof(sql_buff), \"%s\", selector.table):snprintf(sql_buff, sizeof(sql), \"%s\");\n", query.query.data(), query.query.data());
+	fprintf(fp, "\t\tsql_len = 1024;\n");
+
+	if(query.table.size()){
+		fprintf(fp, "\t\tselector.table?snprintf(sql_buff, sql_len, \"%s\", selector.table):snprintf(sql_buff, sql_len, \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+	}else{
+		fprintf(fp, "\t\tsnprintf(sql_buff, sql_len, \"%s\", selector.table);\n", query.sql.data());
+	}
 	fprintf(fp, "\t}\n");
 
-	fprintf(fp, "\n\tmysql_query_t* query = mysql_malloc_query(ctx, mysql, sql);\n");
+	fprintf(fp, "\n\tmysql_query_t* query = mysql_malloc_query(ctx, mysql, sql_buff);\n");
 	fprintf(fp, "\tfor(size_t i = 0; i < values.size(); ++i){\n");
-	fprintf(fp, "\t\tconst space_insert_tag_column_t& value = values[i];\n");
+	fprintf(fp, "\t\t%s_insert_%s_columns_t& value = values[i];\n", package.data(), query.tag.data());
 	for(size_t i = 0; i < query.columns.size(); ++i){
 		fprintf_bind_condition(fp, query.columns[i], "\t\t", "value");
 	}
@@ -490,12 +517,12 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\n\tint rc = execute_mysql_query(query);\n");
 	fprintf(fp, "\tif(rc){\n");
 	fprintf(fp, "\t\tLOG_ERR(\"failed to query mysql:%%d:%%s:%%s\", rc, mysql_query_errmsg(query), sql_buff);\n");
-	fprintf(fp, "\t\tfree(sql_buff)\n");
+	fprintf(fp, "\t\tfree(sql_buff);\n");
 	fprintf(fp, "\t\tmysql_free_query(query);\n");
 	fprintf(fp, "\t\treturn rc;\n");
 	fprintf(fp, "\t}\n\n");
 
-	fprintf(fp, "\tfree(sql_buff)\n");
+	fprintf(fp, "\tfree(sql_buff);\n");
 	fprintf(fp, "\tif(affect_rows){\n");
 	fprintf(fp, "\t\t*affect_rows = mysql_affected_rows(query);\n");
 	fprintf(fp, "\t}\n");
@@ -507,8 +534,15 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 
 void gen_update_cc(FILE* fp, const std::string& package, const t_mysql_query& query)
 {
-	fprintf(fp, "int do_%s_update_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, const %s_update_%s_column_t& columns, const %s_update_%s_condition_t& conditions, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
+	fprintf(fp, "int do_%s_update_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_update_%s_column_t& columns, %s_update_%s_condition_t& conditions, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
+	if(!query.table.size()){
+		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
+		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
+		fprintf(fp, "\t}\n\n");
+	}
+
 	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
 	fprintf(fp, "\tif(!mysql){\n");
 	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
@@ -516,7 +550,12 @@ void gen_update_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\t}\n");
 
 	fprintf(fp, "\n\tchar sql[1024];\n");
-	fprintf(fp, "\tsize_t n = selector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\");\n", query.query.data(), query.query.data());
+
+	if(query.table.size()){
+		fprintf(fp, "\t\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+	}else{
+		fprintf(fp, "\t\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
+	}
 	fprintf(fp, "\tmysql_query_t* query = mysql_malloc_query(ctx, mysql, sql);\n");
 	for(size_t i = 0; i < query.columns.size(); ++i){
 		fprintf_bind_condition(fp, query.columns[i], "\t", "columns");

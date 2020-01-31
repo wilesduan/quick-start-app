@@ -17,8 +17,11 @@ int yylex(void);
 %x _IN_DEFINE_OP_TYPE_
 %x _IN_DEFINE_OP_TAG_
 
-%x _IN_DEFINE_QUERY_
-%x _IN_DEFINE_QUERY_CONTENT_
+%x _IN_DEFINE_SQL_
+%x _IN_DEFINE_SQL_CONTENT_
+
+%x _IN_DEFINE_TABLE_
+%x _IN_DEFINE_TABLE_CONTENT_
 
 %x _IN_DEFINE_COLUMN_
 %x _IN_DEFINE_COLUMN_COLUMN_NAME_
@@ -85,22 +88,42 @@ int yylex(void);
 	return *yytext;
 }
 
-<_IN_DEFINE_>"#"[ \t]*"query" {
-	BEGIN _IN_DEFINE_QUERY_;
-	return IN_DEFINE_QUERY;
+<_IN_DEFINE_>"#"[ \t]*"sql" {
+	BEGIN _IN_DEFINE_SQL_;
+	return IN_DEFINE_SQL;
 }
 
-<_IN_DEFINE_QUERY_>"{" {
-	BEGIN _IN_DEFINE_QUERY_CONTENT_;
+<_IN_DEFINE_SQL_>"{" {
+	BEGIN _IN_DEFINE_SQL_CONTENT_;
 	return *yytext;
 }
 
-<_IN_DEFINE_QUERY_CONTENT_>[^}]* {
-	snprintf(yylval.query, sizeof(yylval.query), "%s", yytext);
-	return IN_DEFINE_QUERY_CONTENT;
+<_IN_DEFINE_SQL_CONTENT_>[^}]* {
+	snprintf(yylval.sql, sizeof(yylval.sql), "%s", yytext);
+	return IN_DEFINE_SQL_CONTENT;
 }
 
-<_IN_DEFINE_QUERY_CONTENT_>"}" {
+<_IN_DEFINE_SQL_CONTENT_>"}" {
+	BEGIN _IN_DEFINE_;
+	return *yytext;
+}
+
+<_IN_DEFINE_>"#"[ \t]*"table" {
+	BEGIN _IN_DEFINE_TABLE_;
+	return IN_DEFINE_TABLE;
+}
+
+<_IN_DEFINE_TABLE_>"<" {
+	BEGIN _IN_DEFINE_TABLE_CONTENT_;
+	return *yytext;
+}
+
+<_IN_DEFINE_TABLE_CONTENT_>[^>]* {
+	snprintf(yylval.table, sizeof(yylval.table), "%s", yytext);
+	return IN_DEFINE_TABLE_CONTENT;
+}
+
+<_IN_DEFINE_TABLE_CONTENT_>">" {
 	BEGIN _IN_DEFINE_;
 	return *yytext;
 }

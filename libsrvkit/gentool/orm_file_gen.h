@@ -46,7 +46,8 @@ typedef struct t_mysql_query
 {
 	EN_MYSQL_QUERY_TYPE type;
 	std::string tag;
-	std::string query;
+	std::string sql;
+	std::string table;
 	std::vector<t_field> columns;
 	std::vector<t_field> conditions;
 	std::vector<t_field> updates;
@@ -57,7 +58,8 @@ union uni_orm
 	char package[128];
 	EN_MYSQL_QUERY_TYPE type;
 	char tag[128];
-	char query[1024];
+	char sql[1024];
+	char table[128];
 	char column_name[128];
 	char column_type[128];
 	int column_max_len;

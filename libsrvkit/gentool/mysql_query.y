@@ -23,8 +23,11 @@ std::string package;
 %token IN_DEFINE_OP_TYPE
 %token IN_DEFINE_OP_TAG
 
-%token IN_DEFINE_QUERY
-%token IN_DEFINE_QUERY_CONTENT
+%token IN_DEFINE_SQL
+%token IN_DEFINE_SQL_CONTENT
+
+%token IN_DEFINE_TABLE
+%token IN_DEFINE_TABLE_CONTENT
 
 %token IN_DEFINE_COLUMN
 %token IN_DEFINE_COLUMN_COLUMN_NAME
@@ -60,10 +63,14 @@ ORM_PROCESS:
 			  pquery->tag = $3.tag;
 			  //printf("define %d:%s\n", $2.type, $3.tag);
 		  }
-		  | IN_DEFINE_QUERY '{' IN_DEFINE_QUERY_CONTENT '}'
+		  | IN_DEFINE_SQL '{' IN_DEFINE_SQL_CONTENT '}'
 		  {
-		      pquery->query = $3.query;
+		      pquery->sql = $3.sql;
 			  //printf("query:%s\n", $3.query);
+		  }
+		  | IN_DEFINE_TABLE '<' IN_DEFINE_TABLE_CONTENT '>'
+		  {
+		      pquery->table = $3.table;
 		  }
 		  | IN_DEFINE_COLUMN IN_DEFINE_COLUMN_COLUMN_NAME '<' IN_DEFINE_COLUMN_COLUMN_TYPE '>'
 		  {

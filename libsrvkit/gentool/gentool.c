@@ -5,18 +5,23 @@
 #include <proto.h>
 #include <file_parser.h>
 #include <file_gen.h>
+#include <orm_file_gen.h>
 #include <stdlib.h>
 
 void usage(char* app)
 {
-	printf("%s -I path -f protofile -o output_dir\n", app);
+	printf("%s -I path -f protofile -o output_dir -t [filetype: orm|proto]\n", app);
 }
+
+static void gen_proto_files(std::vector<char*>& path, std::vector<char*>&files, char* out_dir);
+static void gen_orm_files(std::vector<char*>&files, char* out_dir);
 
 int main(int argc, char** argv)
 {
 	int c = 0;
 	std::vector<char*> paths;
 	paths.push_back(strdup("."));
+	char* file_type = NULL;
 
 	std::vector<char*> files;
 	char* out_dir = strdup("./gentool_out");
@@ -24,6 +29,7 @@ int main(int argc, char** argv)
 				     "I:"//include path
 					 "f:"//file
 					 "o:"//output dir
+					 "t:"//type[orm|proto]
 					 "h" //show help
 					))){
 		switch(c){
@@ -47,12 +53,28 @@ int main(int argc, char** argv)
 					out_dir = strdup(optarg);
 				}
 				break;
+			case 't':
+				{
+					file_type = strdup(optarg);
+					break;
+				}
 			case 'h':
 				usage(argv[0]);
 				return 0;
 		}
 	}
 
+	if(file_type && strcmp(file_type, "orm") == 0){
+		gen_orm_files(files, out_dir);
+		return 0;
+	}
+
+	gen_proto_files(paths, files, out_dir);
+	return 0;
+}
+
+void gen_proto_files(std::vector<char*>& paths, std::vector<char*>&files, char* out_dir)
+{
 	std::vector<proto_file_t*> protos;
 	for(size_t i = 0; i < files.size(); ++i){
 		proto_file_t* proto = new proto_file_t;
@@ -102,6 +124,12 @@ int main(int argc, char** argv)
 	for(size_t i = 0; i < protos.size(); ++i){
 		gen_src_with_proto(protos[i], out_dir);
 	}
+}
 
-	return 0;
+static void gen_orm_files(std::vector<char*>&files, char* out_dir)
+{
+	for(size_t i = 0; i < files.size(); ++i){
+		char* filename = files[i];
+		gen_orm_with_file(filename, out_dir);
+	}
 }

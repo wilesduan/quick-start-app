@@ -13,7 +13,7 @@ static int gen_cli_content(const proto_file_t* proto, const proto_service_t* ser
 static int gen_srv_content(const proto_file_t* proto, const proto_service_t* service, const char* sz_srv_dir);
 static char* get_file_name_ex_proto(const char* name);
 
-static int do_mkdir(const char* mdir)
+int do_mkdir(const char* mdir)
 {
 	int rc = 0;
 	DIR* dir = opendir(mdir);

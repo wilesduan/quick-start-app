@@ -7,7 +7,7 @@
 
 static const char* msg_mysql_stucked = "[ALARM MYSQL too slow]";
 
-static int cmp_mysql_inst(mysql_conn_inst_t* mysql_conn, const char* host, int port, const char* user, const char* password)
+static int cmp_mysql_inst(mysql_host_t* mysql_conn, const char* host, int port, const char* user, const char* password)
 {
 	int rt = strcmp(mysql_conn->host, host);
 	if(rt){
@@ -31,11 +31,11 @@ static int cmp_mysql_inst(mysql_conn_inst_t* mysql_conn, const char* host, int p
 	return 0;
 }
 
-static mysql_conn_inst_t* get_mysql_conn_inst(mysql_wrapper_t* wrapper, const char* host, int port, const char* user, const char* password, int max_pending_query)
+static mysql_host_t* get_mysql_host(mysql_wrapper_t* wrapper, const char* host, int port, const char* user, const char* password, int max_pending_query)
 {
 	struct rb_node** node = &(wrapper->conn_insts.rb_node), *parent = NULL;
 	while(*node){
-		mysql_conn_inst_t* mysql_conn = rb_entry(*node, mysql_conn_inst_t, node); 
+		mysql_host_t* mysql_conn = rb_entry(*node, mysql_host_t, node); 
 		parent = *node;
 		int cmp = cmp_mysql_inst(mysql_conn, host, port, user, password);
 		if(cmp == 0){
@@ -47,7 +47,7 @@ static mysql_conn_inst_t* get_mysql_conn_inst(mysql_wrapper_t* wrapper, const ch
 		}
 	}
 
-	mysql_conn_inst_t* mysql_conn = (mysql_conn_inst_t*)calloc(1, sizeof(mysql_conn_inst_t));
+	mysql_host_t* mysql_conn = (mysql_host_t*)calloc(1, sizeof(mysql_host_t));
 	mysql_conn->host = strdup(host);
 	mysql_conn->port = port;
 	mysql_conn->user = strdup(user);
@@ -85,12 +85,7 @@ int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_con
 		wrapper->type = EN_MYSQL_WRAPPER_TYPE_FABRIC;
 	}
 
-	if(!pb_mysql.hosts_size()){
-		LOG_ERR("no mysql hosts in config");
-		return 0;
-	}
-
-	wrapper->num_instances = pb_mysql.hosts_size();
+	wrapper->num_instances = pb_mysql.insts_size();
 	if(0 == wrapper->num_instances){
 		LOG_ERR("no mysql hosts in config");
 		return 0;
@@ -99,28 +94,42 @@ int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_con
 	int has_failed = 0;
 	wrapper->instances = (mysql_inst_t*)calloc(wrapper->num_instances, sizeof(mysql_inst_t));
 	for(size_t i = 0; i < wrapper->num_instances; ++i){
-		const blink::pb_mysql_host& mysql_host = pb_mysql.hosts(i);
-		if(!mysql_host.user().size() || !mysql_host.passwd().size() || !mysql_host.ip().size() || !mysql_host.port() || !mysql_host.dbname().size()){
-			LOG_ERR("mysql config miss parameter.host:%s", mysql_host.ShortDebugString().data());
+		const blink::pb_mysql_host& master = pb_mysql.insts(i).master();
+		if(!master.user().size() || !master.passwd().size() || !master.ip().size() || !master.port() || !pb_mysql.insts(i).dbname().size()){
+			LOG_ERR("mysql config miss parameter.host:%s", master.ShortDebugString().data());
 			has_failed = -1;
 			continue;
 		}
 
 		mysql_inst_t* inst = wrapper->instances+i;
-		inst->id = mysql_host.id().size()?strdup(mysql_host.id().data()):NULL;
-		inst->dbname = strdup(mysql_host.dbname().data());
-		inst->charset = mysql_host.charset().size()?strdup(mysql_host.charset().data()):NULL;
-        inst->uts = mysql_host.uts();
+		INIT_LIST_HEAD(&inst->slaves);
+		inst->id = pb_mysql.insts(i).id().size()?strdup(pb_mysql.insts(i).id().data()):NULL;
+		inst->dbname = strdup(pb_mysql.insts(i).dbname().data());
+		inst->charset = pb_mysql.insts(i).charset().size()?strdup(pb_mysql.insts(i).charset().data()):NULL;
+        inst->uts = pb_mysql.insts(i).uts();
 
-		const char* host = mysql_host.ip().data();
-		int port = mysql_host.port();
-		const char* user = mysql_host.user().data();
-		const char* passwd = mysql_host.passwd().data();
-		int max_pending_query = mysql_host.pending();
+		const char* host = master.ip().data();
+		int port = master.port();
+		const char* user = master.user().data();
+		const char* passwd = master.passwd().data();
+		int max_pending_query = pb_mysql.insts(i).pending();
 
-		inst->conn_inst = get_mysql_conn_inst(wrapper, host, port, user, passwd, max_pending_query);
-		if(NULL == inst->conn_inst){
+		inst->master = get_mysql_host(wrapper, host, port, user, passwd, max_pending_query);
+		if(NULL == inst->master){
 			has_failed = -2;
+		}
+
+		for(int k = 0; k < pb_mysql.insts(i).slaves_size(); ++k){
+			const blink::pb_mysql_host& slave_config = pb_mysql.insts(i).slaves(k);
+			mysql_host_t* slave = get_mysql_host(wrapper, slave_config.ip().data(), slave_config.port(), slave_config.user().data(), slave_config.passwd().data(), max_pending_query);
+			if(!slave){
+				LOG_ERR("failed to connect slave sql:%s", slave_config.ShortDebugString().data());
+				continue;
+			}
+
+			INIT_LIST_HEAD(&slave->slaves);
+			list_add_tail(&slave->slaves, &inst->slaves);
+			++inst->cnt_slave;
 		}
 	}
 
@@ -161,74 +170,19 @@ mysql_inst_t* get_mysql_from_wrapper_by_id(mysql_wrapper_t* wrapper, const char*
 		}
 	}
 
-	size_t idx = random() % (wrapper->num_instances);
-	return wrapper->instances + idx;
-}
-#if 0
-static int move_pointer_2_char(const char** p, char c)
-{
-	while(*(*p) != '\0' && *(*p) != c){
-		*p = *p + 1;
-	}
-
-	if(*p == '\0')
-		return -1;
-
-	return 0;
+	return NULL;
+	//size_t idx = random() % (wrapper->num_instances);
+	//return wrapper->instances + idx;
 }
 
-static int parse_mysql_url(const char* url, mysql_inst_t* inst)
+int connect_2_mysql_inst(mysql_host_t* inst)
 {
-	const char* user = url;
-	const char* password;
-	const char* host;
-	const char* port;
-	const char* dbname;
-
-	while(*user != 0 && !isalpha(*user)){
-		++user;
-	}
-
-	if(*user == 0){
-		goto invalid_mysql_url;
-	}
-
-	password = user;
-	if(move_pointer_2_char(&password, ':')) goto invalid_mysql_url;
-
-	host = password;
-	if(move_pointer_2_char(&host, '@')) goto invalid_mysql_url;
-
-	port = host;
-	if(move_pointer_2_char(&port, ':')) goto invalid_mysql_url;
-
-	dbname = port;
-	move_pointer_2_char(&dbname, '/');
-	if(*dbname == 0 || *(dbname+1) == 0) goto invalid_mysql_url;
-
-	inst->host = strndup(host+1, port-host-1);
-	inst->port = atoi(port+1);
-	inst->user = strndup(user, password-user);
-	inst->password = strndup(password+1, host-password-1);
-	inst->dbname = strdup(dbname+1);
-
-	return 0;
-invalid_mysql_url:
-	LOG_ERR("invalid mysql url:%s, correct format:\"user:password@host:port/dbname\"", url);
-	return -1;
-}
-#endif
-
-int connect_2_mysql_inst(mysql_conn_inst_t* inst)
-{
-	inst->prev = NULL;
 	time_t now = time(NULL);
 	if(now < inst->last_connect + 2){
 		return -1;
 	}
 
 	mysql_init(&(inst->mysql));
-
 	inst->last_connect = now;
 	MYSQL* mysql = mysql_real_connect(&(inst->mysql), inst->host, inst->user, inst->password, NULL, inst->port, NULL, 0);
 	if(NULL == mysql){
@@ -238,17 +192,7 @@ int connect_2_mysql_inst(mysql_conn_inst_t* inst)
 
 	char reconnect = 1;
 	mysql_options(&(inst->mysql), MYSQL_OPT_RECONNECT, (char *)&reconnect);
-
-#if 0
-	if(inst->charset){
-		mysql_set_character_set(&(inst->mysql), inst->charset);
-	}else{
-		mysql_set_character_set(&(inst->mysql), "utf8");
-	}
-#endif
-
 	inst->connected = 1;
-
 	return 0;
 }
 
@@ -324,7 +268,7 @@ void mysql_free_query(mysql_query_t* query)
 
 	if(query->stmt){
 		if(query->async){
-			add_task_2_routine((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer), free_mysql_stmt, (void*)query->stmt, true);
+			add_task_2_routine((async_routine_t*)(query->ctx->mysql_host->asyncer), free_mysql_stmt, (void*)query->stmt, true);
 		}else{
 			free_mysql_stmt(query->stmt);
 		}
@@ -332,7 +276,7 @@ void mysql_free_query(mysql_query_t* query)
 
 	if(query->res){
 		if(query->async){
-			add_task_2_routine((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer), free_mysql_res, (void*)query->res, true);
+			add_task_2_routine((async_routine_t*)(query->ctx->mysql_host->asyncer), free_mysql_res, (void*)query->res, true);
 		}else{
 			free_mysql_res(query->res);
 		}
@@ -515,7 +459,7 @@ int mysql_bind_binary(mysql_query_t* query, char* value, size_t* len)
 	return 0;
 }
 
-int switch_dbname_charset(mysql_inst_t* inst, int flag)
+int switch_dbname_charset(mysql_inst_t* inst, mysql_host_t* host,int flag)
 {
 	int rc = 0;
 	char dbname[256];
@@ -525,21 +469,21 @@ int switch_dbname_charset(mysql_inst_t* inst, int flag)
 		snprintf(dbname, sizeof(dbname), "%s", inst->dbname);
 	}
 
-	if(flag != inst->flag || inst->conn_inst->prev != inst){
+	if(flag != inst->flag || strcmp(dbname, host->pre_db)){
 		if(inst->charset){
-			mysql_set_character_set(&(inst->conn_inst->mysql), inst->charset);
+			mysql_set_character_set(&(host->mysql), inst->charset);
 		}else{
-			mysql_set_character_set(&(inst->conn_inst->mysql), "utf8");
+			mysql_set_character_set(&(host->mysql), "utf8");
 		}
 
-		rc = mysql_select_db(&(inst->conn_inst->mysql), dbname);
-		inst->conn_inst->prev = inst;
+		rc = mysql_select_db(&(host->mysql), dbname);
+		strncpy(host->pre_db, dbname, sizeof(host->pre_db));
 		inst->flag = flag;
 	}
 
 	if(rc){
-		LOG_ERR("failed to switch dbname:%s, error:%d:%s", inst->dbname, rc, mysql_error(&(inst->conn_inst->mysql)));
-		inst->conn_inst->prev = NULL;
+		LOG_ERR("failed to switch dbname:%s, error:%d:%s", inst->dbname, rc, mysql_error(&(host->mysql)));
+		host->pre_db[0] = 0;
 	}
 
 	return rc;
@@ -548,19 +492,20 @@ int switch_dbname_charset(mysql_inst_t* inst, int flag)
 static int check_mysql_status(mysql_query_t* query)
 {
 	mysql_inst_t* inst = query->ctx->mysql_inst;
+	mysql_host_t* host = query->ctx->mysql_host;
 
 	time_t now = time(NULL);
-	if(now < inst->conn_inst->last_ping + 5){
-		return switch_dbname_charset(inst, query->flag_test);
+	if(now < host->last_ping + 5){
+		return switch_dbname_charset(inst, host, query->flag_test);
 	}
 
-	if(mysql_ping(&(inst->conn_inst->mysql))){
+	if(mysql_ping(&(host->mysql))){
 		LOG_ERR("failed to reconnect mysql");
 		return -123;
 	}
 
-	inst->conn_inst->last_ping = now;
-	return switch_dbname_charset(inst, query->flag_test);
+	host->last_ping = now;
+	return switch_dbname_charset(inst, host, query->flag_test);
 }
 
 void async_fin_mysql_execute(mysql_query_t* query)
@@ -587,7 +532,7 @@ static int do_stmt_execute(void* arg)
 		goto end_exe;
 	}
 
-	query->stmt = mysql_stmt_init(&(query->ctx->mysql_inst->conn_inst->mysql));
+	query->stmt = mysql_stmt_init(&(query->ctx->mysql_host->mysql));
 	if(NULL == query->stmt){
 		goto end_exe;
 	}
@@ -620,8 +565,8 @@ static int do_stmt_execute(void* arg)
 		goto end_exe;
 	}
 
-	query->insert_id = mysql_insert_id(&(query->ctx->mysql_inst->conn_inst->mysql));
-	query->affected_rows = mysql_affected_rows(&(query->ctx->mysql_inst->conn_inst->mysql));
+	query->insert_id = mysql_insert_id(&(query->ctx->mysql_host->mysql));
+	query->affected_rows = mysql_affected_rows(&(query->ctx->mysql_host->mysql));
 
 end_exe:
 	query->rc = rc;
@@ -652,15 +597,15 @@ int execute_mysql_query(mysql_query_t* query)
 	if(!query->async){
 		do_stmt_execute(query);
 	}else{
-		LOG_INFO("BEFORE QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer))->cnt_task);
-		rc = add_task_2_routine((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer), do_stmt_execute, (void*)query);
+		LOG_INFO("BEFORE QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_host->asyncer))->cnt_task);
+		rc = add_task_2_routine((async_routine_t*)(query->ctx->mysql_host->asyncer), do_stmt_execute, (void*)query);
 		if(!rc){
 			co_yield(query->ctx->co);
 		}else{
 			LOG_ERR("[MYSQL_ALARM]failed to add async mysql task");
 			MONITOR_ACC("qpm_mysql_async_failed", 1);
 		}
-		LOG_INFO("AFTER QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer))->cnt_task);
+		LOG_INFO("AFTER QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_host->asyncer))->cnt_task);
 	}
 
 	rc = query->rc;
@@ -697,14 +642,14 @@ static int do_query(void* arg)
 		goto end_exe;
 	}
 
-	rc = mysql_query(&(query->ctx->mysql_inst->conn_inst->mysql), query->query);
+	rc = mysql_query(&(query->ctx->mysql_host->mysql), query->query);
 	if(rc){
 		rc = -2;
 		goto end_exe;
 	}
 
-    query->res = mysql_store_result(&(query->ctx->mysql_inst->conn_inst->mysql));
-    rc = mysql_errno(&(query->ctx->mysql_inst->conn_inst->mysql));
+    query->res = mysql_store_result(&(query->ctx->mysql_host->mysql));
+    rc = mysql_errno(&(query->ctx->mysql_host->mysql));
 	if(rc){
 		goto end_exe;
 	}
@@ -738,15 +683,15 @@ int execute_query(mysql_query_t* query)
 	if(!query->async){
 		do_query(query);
 	}else{
-		LOG_INFO("BEFORE QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer))->cnt_task);
-		rc = add_task_2_routine((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer), do_query, (void*)query);
+		LOG_INFO("BEFORE QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_host->asyncer))->cnt_task);
+		rc = add_task_2_routine((async_routine_t*)(query->ctx->mysql_host->asyncer), do_query, (void*)query);
 		if(!rc){
 			co_yield(query->ctx->co);
 		}else{
 			LOG_ERR("[MYSQL_ALARM]failed to add async mysql task");
 			MONITOR_ACC("qpm_mysql_async_failed", 1);
 		}
-		LOG_INFO("AFTER QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_inst->conn_inst->asyncer))->cnt_task);
+		LOG_INFO("AFTER QUEUE SIZE: %llu", ((async_routine_t*)(query->ctx->mysql_host->asyncer))->cnt_task);
 	}
 
 	rc = query->rc;
@@ -902,7 +847,40 @@ int mysql_enumerate_rslt(mysql_query_t* query, fn_handle_row handler, void* buff
     return count;
 }
 
-MYSQL* get_mysql_from_rpc(rpc_ctx_t* ctx, uint64_t shard_key)
+static MYSQL* get_mysql_from_inst(rpc_ctx_t* ctx, mysql_inst_t* inst, int slave)
+{
+	mysql_host_t* host = NULL;
+	if(!slave || list_empty(&inst->slaves)){
+		host = inst->master;
+	}else{
+		int rand = random()%inst->cnt_slave;
+		list_head* p = NULL;
+		int idx = 0;
+		list_for_each(p, &inst->slaves){
+			if(idx++ < rand){
+				continue;
+			}
+
+			host = list_entry(p, mysql_host_t, slaves);
+		}
+	}
+
+	if(!host){
+		LOG_ERR("impossible here. failed to get mysql inst:%s", inst->dbname);
+		return NULL;
+	}
+
+	if(!host->connected && connect_2_mysql_inst(host)){
+		LOG_ERR("mysql host:%s:%d lost connection", host->host, host->port);
+		return NULL;
+	}
+
+	ctx->mysql_inst = inst;
+	ctx->mysql_host = host;
+	return &(host->mysql);
+}
+
+MYSQL* get_mysql_from_rpc(rpc_ctx_t* ctx, uint64_t shard_key, int slave)
 {
 	if(NULL == ctx || NULL == ctx->ptr || NULL == ctx->co->worker){
 		LOG_ERR("no worker in ctx");
@@ -915,20 +893,11 @@ MYSQL* get_mysql_from_rpc(rpc_ctx_t* ctx, uint64_t shard_key)
 		LOG_ERR("failed to get mysql instance");
 		return NULL;
 	}
-	if(!inst->conn_inst){
-		LOG_ERR("impossible here. failed to get mysql inst:%" PRIu64, shard_key);
-		return NULL;
-	}
 
-	if(!inst->conn_inst->connected && connect_2_mysql_inst(inst->conn_inst)){
-		return NULL;
-	}
-
-	ctx->mysql_inst = inst;
-	return &(inst->conn_inst->mysql);
+	return get_mysql_from_inst(ctx, inst, slave);
 }
 
-MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* ctx, const char* id)
+MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* ctx, const char* id, int slave)
 {
 	if(NULL == ctx || NULL == ctx->ptr || NULL == ctx->co->worker){
 		LOG_ERR("no worker in ctx");
@@ -941,18 +910,8 @@ MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* ctx, const char* id)
 		LOG_ERR("failed to get mysql instance");
 		return NULL;
 	}
-	if(NULL == inst->conn_inst){
-		LOG_ERR("impossible here, no conn inst for mysql inst:%s", id);
-		return NULL;
-	}
 
-
-	if(!inst->conn_inst->connected && connect_2_mysql_inst(inst->conn_inst)){
-		return NULL;
-	}
-
-	ctx->mysql_inst = inst;
-	return &(inst->conn_inst->mysql);
+	return get_mysql_from_inst(ctx, inst, slave);
 }
 
 int connect_2_mysql(worker_thread_t* wt, const blink::pb_mysql_config & mysql_config)

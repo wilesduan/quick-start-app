@@ -552,9 +552,9 @@ void gen_update_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\n\tchar sql[1024];\n");
 
 	if(query.table.size()){
-		fprintf(fp, "\t\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+		fprintf(fp, "\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
 	}else{
-		fprintf(fp, "\t\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
+		fprintf(fp, "\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
 	}
 	fprintf(fp, "\tmysql_query_t* query = mysql_malloc_query(ctx, mysql, sql);\n");
 	for(size_t i = 0; i < query.columns.size(); ++i){

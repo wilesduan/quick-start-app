@@ -47,6 +47,7 @@ typedef struct t_mysql_query
 	EN_MYSQL_QUERY_TYPE type;
 	std::string tag;
 	std::string sql;
+	int slave;
 	std::string table;
 	std::vector<t_field> columns;
 	std::vector<t_field> conditions;
@@ -57,6 +58,7 @@ union uni_orm
 {
 	char package[128];
 	EN_MYSQL_QUERY_TYPE type;
+	int slave;
 	char tag[128];
 	char sql[1024];
 	char table[128];

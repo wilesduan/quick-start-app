@@ -1,0 +1,42 @@
+#package space
+
+#define select tag 
+#query {select c1, c2, c3 from t where c1=? and c2=? order by c1 group by c2}
+#column c1<int32>
+#column c2<int32>
+#column c3<int32>
+
+#condition c1<int32> 
+#condition c2<int32>
+#end
+
+/*
+   int do_space_select_query_tag(ctx, dbname, const struct(condition)& condition, vector<struct(c1, c2, c3)>& result);
+   */
+
+#define insert tag 
+#query {insert into t(c1, c2, c3) values(?, ?, ?) on duplicate key update c1=?}
+#column c1<int32>
+#column c2<int32>
+#column c3<int32>
+
+#update c1<int32>
+#end
+/*
+   int do_space_insert_query_tag(ctx, dbname, vector<struct(c1, c2, c3)>& values, struct<update>* update, int* affect_rows);
+   */
+
+#define update tag
+#query {update t set c1=?, c2=?, c3=? where c1=? and c2=? and c3=?}
+#column c1<int32>
+#column c2<int32>
+#column c3<int32> 
+
+#condition c1<int32>
+#condition c2<int32>
+#condition c3<int32>
+#end 
+/*
+   int do_space_update_query_tag(ctx, dbname, const struct(c1, c2, c3)& values, struct<update>* update, int* affect_rows);
+   */
+

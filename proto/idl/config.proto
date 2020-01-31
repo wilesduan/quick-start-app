@@ -31,21 +31,27 @@ message pb_dep_service
 
 message pb_mysql_host
 {
+	optional string user = 1;
+	optional string passwd = 2;
+	optional string ip = 3;
+	optional int32 port = 4;
+};
+
+message pb_mysql_inst
+{
 	optional string id = 1; 
-	optional string user = 2;
-	optional string passwd = 3;
-	optional string ip = 4;
-	optional int32 port = 5;
-	optional string dbname = 6;
-	optional string charset = 7;
-	optional int32 pending = 8[default = 1000];
-	optional int64 uts = 9;
+	required pb_mysql_host master = 2;
+	repeated pb_mysql_host slaves = 3;
+	optional string dbname = 4;
+	optional string charset = 5;
+	optional int32 pending = 6[default = 1000];
+	optional int64 uts = 7;
 };
 
 message pb_mysql_config
 {
 	optional string type = 1;
-	repeated pb_mysql_host hosts = 2;
+	repeated pb_mysql_inst insts = 2;
 };
 
 message pb_kafka_consumer

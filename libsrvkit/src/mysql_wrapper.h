@@ -7,6 +7,7 @@
 #include <rbtree.h>
 #include <async_task.h>
 #include <config.pb.h>
+#include <list.h>
 
 enum mysql_wrapper_type
 {
@@ -16,7 +17,7 @@ enum mysql_wrapper_type
 
 struct mysql_inst_t;
 
-typedef struct mysql_conn_inst_t
+typedef struct mysql_host_t
 {
 	char* host;
 	int port;
@@ -31,18 +32,20 @@ typedef struct mysql_conn_inst_t
 	time_t last_connect;
 	int connected;
 
-	struct mysql_inst_t* prev;
-
 	rb_node node;
 
 	async_routine_t* asyncer;
-}mysql_conn_inst_t;
+	list_head slaves;
+	char pre_db[128];
+}mysql_host_t;
 
 typedef struct mysql_inst_t
 {
 	char* id;
 	char* dbname;
-	mysql_conn_inst_t* conn_inst;
+	mysql_host_t* master;
+	list_head slaves;
+	size_t cnt_slave;
 	char* charset;
 	int flag;
     uint64_t uts;
@@ -139,7 +142,7 @@ int execute_mysql_query(mysql_query_t* query);
 int execute_query(mysql_query_t* query);
 
 int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_config& pb_mysql);
-int connect_2_mysql_inst(mysql_conn_inst_t* inst);
+int connect_2_mysql_inst(mysql_host_t* inst);
 /*
 int set_mysql_bind_int_32(MYSQL_BIND* bind, const char* column, const int* value)
 int set_mysql_bind_uint_32(MYSQL_BIND* bind, const char* column, const uint32_t* value)

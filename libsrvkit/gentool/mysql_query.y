@@ -26,6 +26,9 @@ std::string package;
 %token IN_DEFINE_SQL
 %token IN_DEFINE_SQL_CONTENT
 
+%token IN_DEFINE_SLAVE
+%token IN_DEFINE_SLAVE_CONTENT
+
 %token IN_DEFINE_TABLE
 %token IN_DEFINE_TABLE_CONTENT
 
@@ -67,6 +70,10 @@ ORM_PROCESS:
 		  {
 		      pquery->sql = $3.sql;
 			  //printf("query:%s\n", $3.query);
+		  }
+		  | IN_DEFINE_SLAVE '<' IN_DEFINE_SLAVE_CONTENT '>'
+		  {
+		      pquery->slave = $3.slave;
 		  }
 		  | IN_DEFINE_TABLE '<' IN_DEFINE_TABLE_CONTENT '>'
 		  {

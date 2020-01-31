@@ -146,6 +146,7 @@ typedef struct rpc_ctx_t
 	coroutine_t* co;
 	void* arg;
 	mysql_inst_t* mysql_inst;
+	mysql_host_t* mysql_host;
 	redis_cmds_t redis_cmds;
 	redis_client_t* redis;
 	rpc_ctx_t(){

@@ -20,6 +20,9 @@ int yylex(void);
 %x _IN_DEFINE_SQL_
 %x _IN_DEFINE_SQL_CONTENT_
 
+%x _IN_DEFINE_SLAVE_
+%x _IN_DEFINE_SLAVE_CONTENT_
+
 %x _IN_DEFINE_TABLE_
 %x _IN_DEFINE_TABLE_CONTENT_
 
@@ -104,6 +107,26 @@ int yylex(void);
 }
 
 <_IN_DEFINE_SQL_CONTENT_>"}" {
+	BEGIN _IN_DEFINE_;
+	return *yytext;
+}
+
+<_IN_DEFINE_>"#"[ \t]*"slave" {
+	BEGIN _IN_DEFINE_SLAVE_;
+	return IN_DEFINE_SLAVE;
+}
+
+<_IN_DEFINE_SLAVE_>"<" {
+	BEGIN _IN_DEFINE_SLAVE_CONTENT_;
+	return *yytext;
+}
+
+<_IN_DEFINE_SLAVE_CONTENT_>[^>]* {
+	yylval.slave = atoi(yytext);
+	return IN_DEFINE_SLAVE_CONTENT;
+}
+
+<_IN_DEFINE_SLAVE_CONTENT_>">" {
 	BEGIN _IN_DEFINE_;
 	return *yytext;
 }

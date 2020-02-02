@@ -103,6 +103,10 @@ int gen_header_file(const std::string& package, const std::vector<t_mysql_query>
 	fprintf(fp, "\n#ifndef __MYSQL_OP_DB_SELECTOR__\n");
 	fprintf(fp, "#define __MYSQL_OP_DB_SELECTOR__\n");
 	fprintf(fp, "#define EN_INVALID_DB_SELECTOR 199999;\n");
+	fprintf(fp, "enum en_selector_use_db\n{\n");
+	fprintf(fp, "\tEN_SELECTOR_DB_USE_MASTER = 0,\n");
+	fprintf(fp, "\tEN_SELECTOR_DB_USE_SLAVE = 1,\n");
+	fprintf(fp, "};\n");
 	fprintf(fp, "typedef struct mysql_selector_t\n");
 	fprintf(fp, "{\n");
 	fprintf(fp, "\tconst char* db_id;\n");
@@ -365,7 +369,7 @@ static void fprintf_bind_condition(FILE* fp, const t_field& field, const char* i
 		case EN_MYSQL_FIELD_STR:
 		case EN_MYSQL_FIELD_VAR_STR:
 		case EN_MYSQL_FIELD_BINARY:
-			fprintf(fp, "%s%s(query, &%s.%s, &%s.%s_len);\n", indent, field_2_str[type].bind_param, name, field.column_name.data(), name, field.column_name.data());
+			fprintf(fp, "%s%s(query, %s.%s, &%s.%s_len);\n", indent, field_2_str[type].bind_param, name, field.column_name.data(), name, field.column_name.data());
 			break;
 		default:
 			fprintf(fp, "%s%s(query, &%s.%s);\n", indent, field_2_str[type].bind_param, name, field.column_name.data());
@@ -376,7 +380,16 @@ static void fprintf_bind_condition(FILE* fp, const t_field& field, const char* i
 static void fprintf_bind_result(FILE* fp, const t_field& field)
 {
 	EN_MYSQL_FIELD_TYPE type = get_mysql_field_type(field.column_type.data());
-	fprintf(fp, "\t%s(query, &row.%s, &row.is_%s_null, &row.%s_len, &row.is_%s_error);\n", field_2_str[type].bind_result, field.column_name.data(), field.column_name.data(), field.column_name.data(), field.column_name.data());
+	switch(type){
+		case EN_MYSQL_FIELD_STR:
+		case EN_MYSQL_FIELD_VAR_STR:
+		case EN_MYSQL_FIELD_BINARY:
+			fprintf(fp, "\t%s(query, row.%s, &row.is_%s_null, &row.%s_len, &row.is_%s_error);\n", field_2_str[type].bind_result, field.column_name.data(), field.column_name.data(), field.column_name.data(), field.column_name.data());
+			break;
+		default:
+			fprintf(fp, "\t%s(query, &row.%s, &row.is_%s_null, &row.%s_len, &row.is_%s_error);\n", field_2_str[type].bind_result, field.column_name.data(), field.column_name.data(), field.column_name.data(), field.column_name.data());
+			break;
+	}
 }
 
 void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& query)
@@ -401,7 +414,8 @@ void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 		fprintf(fp, "\t}\n\n");
 	}
 
-	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
+	const char* slave = query.slave?"EN_SELECTOR_DB_USE_SLAVE":"EN_SELECTOR_DB_USE_MASTER";
+	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id, %s):get_mysql_from_rpc(ctx, selector.shard_key, %s);\n", slave, slave);
 	fprintf(fp, "\tif(!mysql){\n");
 	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
 	fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");

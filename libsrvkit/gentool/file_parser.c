@@ -216,6 +216,37 @@ static  void parse_message_line(char* line, enum parse_state* state, proto_file_
 	}
 }
 
+static void parse_canal_parameters(char* start, proto_method_t* proto_method)
+{
+	move_util(&start, '(');
+	char* end = start;
+	move_util(&end, ')');
+	while(*start != 0 && start != end){
+		start += 1;
+		trim_line(&start);
+		char* equal = start;
+		move_util(&equal, '=');
+
+		char* quto_left = equal;
+		move_util(&quto_left, '"');
+		char* quto_right = quto_left+1;
+		move_util(&quto_right, '"');
+
+		char* seq = quto_right;
+		move_util(&seq, ',');
+
+		if(strncmp(start, "database", 8) == 0){
+			proto_method->database = strndup(quto_left+1, quto_right-quto_left-1);
+		}else if(strncmp(start, "table", 5) == 0){
+			proto_method->table = strndup(quto_left+1, quto_right-quto_left-1);
+		}else if(strncmp(start, "type", 4) == 0){
+			proto_method->type = strndup(quto_left+1, quto_right-quto_left-1);
+		}
+
+		start = seq;
+	}
+}
+
 static  void parse_service_line(char* pre_line, enum parse_state* state, proto_file_t* proto)
 {
 	char* line = pre_line;
@@ -251,7 +282,7 @@ static  void parse_service_line(char* pre_line, enum parse_state* state, proto_f
 	    move_util(&att_p_end, ']');
 	    char* sub_class_p = strndup(line+1 ,att_p_end-line-1);
 	    
-	    char* tmp_p = strtok(sub_class_p, ",");
+	    char* tmp_p = strtok(sub_class_p, ";");
 	    while(tmp_p){
             if (!strncmp(tmp_p, "kafka", 6)){
                 proto_method.sub_class |= en_sub_class_kafka;
@@ -259,7 +290,12 @@ static  void parse_service_line(char* pre_line, enum parse_state* state, proto_f
             if(!strncmp(tmp_p, "inner", 5)){
                 proto_method.sub_class |= en_sub_class_inner;
             }
-            tmp_p = strtok(NULL, ",");
+
+			if(!strncmp(tmp_p, "canal", 5)){
+                proto_method.sub_class |= en_sub_class_kafka;
+				parse_canal_parameters(tmp_p+5, &proto_method);
+			}
+            tmp_p = strtok(NULL, ";");
 	    }
         free(sub_class_p);
 		move_util(&line, ']');

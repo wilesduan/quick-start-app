@@ -11,14 +11,14 @@ void add_co_timeout_wheel(worker_thread_t* worker, coroutine_t* co)
 		co->timeout = 1600;
 	}
 
-	add_timeout_event_2_timer(&worker->timers, co->timeout, &(co->req_co_timeout_wheel), &(co->req_co_milli_offset));
+	add_timer_event(&worker->timer, co->timeout, &co->rpc_timer);
 }
 
 void add_client_inst_2_wheel(worker_thread_t* worker, proto_client_inst_t* cli)
 {
 	size_t interval  = 2000;
 	++(cli->num_conn_failed);
-	add_disconnect_event_2_timer(&(worker->timers), interval, &(cli->disconnected_client_wheel),&(cli->disconnect_milli_offset));
+	add_timer_event(&worker->timer, interval, &cli->disconnected_timer);
 	LOG_INFO("worker:%llu add host:%s:%d to reconnect wheel", (long long unsigned)worker, cli->ip, cli->port);
 }
 
@@ -32,7 +32,7 @@ void add_ev_ptr_2_heartbeat_wheel(worker_thread_t* worker, ev_ptr_t* ptr)
 		return;
 	}
 
-	add_heartbeat_event_2_timer(&(worker->timers), K_HEART_BEAT_INTERVAL*1000, &(ptr->heartbeat_wheel), &(ptr->heartbeat_milli_offset));
+	add_timer_event(&(worker->timer), K_HEART_BEAT_INTERVAL*1000, &(ptr->heartbeat_timer));
 	LOG_DBG("worker:%llu add host:%s:%d fd:%d to heartbeat wheel", (long long unsigned)worker, ptr->ip, ptr->port, ptr->fd);
 }
 
@@ -42,7 +42,7 @@ void add_ev_ptr_2_idle_time_wheel(worker_thread_t* worker, ev_ptr_t* ptr)
 		ptr->idle_time = K_DEFALUT_IDLE_TIME;
 	}
 
-	add_idle_event_2_timer(&(worker->timers), ptr->idle_time*1000, &(ptr->idle_time_wheel), &(ptr->idle_milli_offset));
+	add_timer_event(&(worker->timer), ptr->idle_time*1000, &(ptr->idle_timer));
 	LOG_DBG("worker:%llu add host:%s:%d fd:%d to idle time wheel", (long long unsigned)worker, ptr->ip, ptr->port, ptr->fd);
 }
 
@@ -81,8 +81,8 @@ void recycle_ev_ptr(ev_ptr_t* ptr)
 		ptr->epoll_del = 1;
 	}
 
-	del_heartbeat_event_from_timer(&worker->timers, &(ptr->heartbeat_wheel));
-	del_idle_event_from_timer(&worker->timers, &(ptr->idle_time_wheel));
+	del_timer_event(&worker->timer, &(ptr->heartbeat_timer));
+	del_timer_event(&worker->timer, &(ptr->idle_timer));
 
 	if(ptr->recv_chain){
 		util_destroy_buff_chain(ptr->recv_chain);
@@ -225,13 +225,13 @@ void init_user_context(blink::UserContext* usr_ctx, const rpc_info_t* info, int 
 	p->set_caller_cost(now - info->start_time);
 }
 
-void do_check_co_timeout(worker_thread_t* worker, list_head* node)
+void do_check_co_timeout(worker_thread_t* worker, timer_event_t* node)
 {
-	list_del(node);
-	INIT_LIST_HEAD(node);
+	list_del(&node->list);
+	INIT_LIST_HEAD(&node->list);
 
 	blink::UserContext user_ctx;
-	coroutine_t* co = list_entry(node, coroutine_t, req_co_timeout_wheel);
+	coroutine_t* co = list_entry(node, coroutine_t, rpc_timer);
 	LOG_ERR("request is timeout.worker:%llu, traceid:%s, ss_req_id:%llu", (long long unsigned)worker, co->uctx.ss_trace_id_s, co->cache_req_id);
 	if(is_co_in_batch_mode(co)){
 		list_head* p;
@@ -291,24 +291,24 @@ void do_check_co_timeout(worker_thread_t* worker, list_head* node)
 	co_release(&co);
 }
 
-void do_check_heartbeat_timeout(worker_thread_t* worker, list_head* p)
+void do_check_heartbeat_timeout(worker_thread_t* worker, timer_event_t* p)
 {
-	list_del(p);
-	INIT_LIST_HEAD(p);
+	list_del(&p->list);
+	INIT_LIST_HEAD(&p->list);
 
-	ev_ptr_t* hb = list_entry(p, ev_ptr_t, heartbeat_wheel);
+	ev_ptr_t* hb = list_entry(p, ev_ptr_t, heartbeat_timer);
 	async_heartbeat(worker, hb);
 	LOG_DBG("add_ev_ptr_2_heartbeat_wheel times up. worker:%llu, host:%s:%d fd:%d", (long long unsigned)worker, hb->ip, hb->port, hb->fd);
 	add_ev_ptr_2_heartbeat_wheel(worker, hb);
 	return;
 }
 
-void do_check_idle_timeout(worker_thread_t* worker, list_head* p)
+void do_check_idle_timeout(worker_thread_t* worker, timer_event_t* p)
 {
-	list_del(p);
-	INIT_LIST_HEAD(p);
+	list_del(&p->list);
+	INIT_LIST_HEAD(&p->list);
 
-	ev_ptr_t* it  = list_entry(p, ev_ptr_t, idle_time_wheel);
+	ev_ptr_t* it  = list_entry(p, ev_ptr_t, idle_timer);
 	LOG_ERR("idle_time timer, worker:%llu recycle_ev_ptr host:%s:%d fd:%d",(long long unsigned)worker, it->ip, it->port, it->fd);
 	if(it->process_handler == http2_ping_mark){
 		clean_http2_cli((worker_thread_t*)it->arg, it->cli);
@@ -320,11 +320,11 @@ void do_check_idle_timeout(worker_thread_t* worker, list_head* p)
 	return;
 }
 
-void do_check_disconnect_timeout(worker_thread_t* worker, list_head* p)
+void do_check_disconnect_timeout(worker_thread_t* worker, timer_event_t* p)
 {
-	list_del(p);
-	INIT_LIST_HEAD(p);
-	proto_client_inst_t* cli = list_entry(p, proto_client_inst_t, disconnected_client_wheel);
+	list_del(&p->list);
+	INIT_LIST_HEAD(&p->list);
+	proto_client_inst_t* cli = list_entry(p, proto_client_inst_t, disconnected_timer);
 	LOG_ERR("timer do reconnect: worker:%llu, %s:%d", (long long unsigned)worker, cli->ip, cli->port);
 	//TODO CAUTION, this would be blocked
 	//init_client_inst(worker, cli, std::pair<char*, int>(cli->ip, cli->port));
@@ -357,8 +357,8 @@ ev_ptr_t* get_ev_ptr(worker_thread_t* worker,int fd)
 
 	//LOG_INFO("mem alloc worker:%llu, ev_ptr:%d", (long long unsigned)worker, worker->num_alloc_ev_ptr);
 
-	INIT_LIST_HEAD(&(ptr->heartbeat_wheel));
-	INIT_LIST_HEAD(&(ptr->idle_time_wheel));
+	init_timer_event(&(ptr->heartbeat_timer), do_check_heartbeat_timeout);
+	init_timer_event(&(ptr->idle_timer), do_check_idle_timeout);
 
 	INIT_LIST_HEAD(&(ptr->co_list));
 	INIT_LIST_HEAD(&ptr->free_ev_ptr_list);

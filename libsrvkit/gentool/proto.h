@@ -33,6 +33,9 @@ typedef struct proto_method_t
 {
 	char* ret_type;
 	char* name;
+	char* database;
+	char* table;
+	char* type;
 	int sub_class;
 	int tag;
 	proto_var_t* req;
@@ -40,6 +43,9 @@ typedef struct proto_method_t
 	proto_method_t(){
 		ret_type = NULL;
 		name = NULL;
+		database = NULL;
+		table = NULL;
+		type = NULL;
 		req = NULL;
 		rsp = NULL;
 		sub_class = 0;

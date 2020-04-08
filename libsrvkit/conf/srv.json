@@ -1,65 +1,68 @@
 {
-	"daemon":0,
-	"log":{
-		"level":15,
-		"local":"./log",
-		"rotate_size":"1G",
-		"rotate_interval":60,
-		"keep_files":5,
-		"remote":"udp://ip:port",
-		"syslog":"",
-		"monitor":"udp://eth0:21010",
-	},
-	"register_zk":"zk://127.0.0.1:2181/regist-path/?group=1",
-	"zk":"zk://127.0.0.1:2181,127.0.0.1:2182/config-path/test_srv.json",
-	"max_conns_per_worker":10000,
-	"wt_num":10,
-	"listen":[
-		"tcp://eth0:1025?heartbeat=1&service=xxx,xxx,xxx&acc_num=1&idle_time=10&public=1",
-		"udp://eth0:1025?heartbeat=1&service=xxx,xxx,xxx",
-		"http://eth0:1025?heartbeat=1&service=xxx,xxx,xxx",
+	"sys_conf":{
+		"daemon":0,
+		"log":{
+			"level":15,
+			"local":"./log",
+			"rotate_size":"1G",
+			"rotate_interval":60,
+			"keep_files":5,
+			"remote":"udp://ip:port",
+			"syslog":"",
+			"monitor":"udp://eth0:21010",
+		},
+		"register_zk":"zk://127.0.0.1:2181/regist-path/?group=1",
+		"zk":"zk://127.0.0.1:2181,127.0.0.1:2182/config-path/test_srv.json",
+		"max_conns_per_worker":10000,
+		"wt_num":10,
+		"listen":[
+			"tcp://eth0:1025?heartbeat=1&service=xxx,xxx,xxx&acc_num=1&idle_time=10&public=1",
+			"udp://eth0:1025?heartbeat=1&service=xxx,xxx,xxx",
+			"http://eth0:1025?heartbeat=1&service=xxx,xxx,xxx",
 		],
-	"dep_service":[
-		 {"name":"tservice", "type":"swoole", "hash":0, "req_queue_size":1000, "heartbeat":1, "url":"tcp://ip:port,", "failure_in_10s":5, "half_open_ratio":10},
-		 {"name":"tservice", "type":"pb", "hash":0, "url":"zk://127.0.0.1:2183/zk-path/test_dep_srv?group=1"},
-		 {"name":"apple-apns", "type":"http2", "hash":0, "url":"https://127.0.0.1:2183", "ssl_cert":"/path", "ssl_key":""},
+		"dep_service":[
+			{"name":"tservice", "type":"swoole", "hash":0, "req_queue_size":1000, "heartbeat":1, "url":"tcp://ip:port,", "failure_in_10s":5, "half_open_ratio":10},
+			{"name":"tservice", "type":"pb", "hash":0, "url":"zk://127.0.0.1:2183/zk-path/test_dep_srv?group=1"},
+			{"name":"apple-apns", "type":"http2", "hash":0, "url":"https://127.0.0.1:2183", "ssl_cert":"/path", "ssl_key":""},
 		],
-	"redis":"cluster://10.232.32.2:123:2322,xxxx:xx,",
-	"redis":"tw://10.232.32.2:123:2322",
-	"mysql":{
-		"type":"shard",
-		"hosts":["user:password@127.0.0.1:3306/dbname", "user:password@127.0.0.1:3307/dbname"]
-	},
-	"mysql":{
-		"type":"fabric",
-		"hosts":[{"user":"xxx", "passwd":"", "ip":"xxx", "port":xxx, "dbname":"xxxx"}"user:password@127.0.0.1:3306/dbname"]
-	},
+		"redis":"cluster://10.232.32.2:123:2322,xxxx:xx,",
+		"redis":"tw://10.232.32.2:123:2322",
+		"mysql":{
+			"type":"shard",
+			"hosts":["user:password@127.0.0.1:3306/dbname", "user:password@127.0.0.1:3307/dbname"]
+		},
+		"mysql":{
+			"type":"fabric",
+			"hosts":[{"user":"xxx", "passwd":"", "ip":"xxx", "port":xxx, "dbname":"xxxx"}"user:password@127.0.0.1:3306/dbname"]
+		},
 
-	"kafka":{
-		"consumers":[{
-			{
-				"group.id":"test_group",
-				"broker_list":":""",
+
+		"kafka":{
+			"consumers":[{
+				{
+					"group.id":"test_group",
+					"broker_list":":""",
+					"topics":["topic1", "topic2"],
+					"format":"pb",
+					"thread_num":1,
+					"redis":"tw://10.232.32.2:123:2322",
+				}
+			}],
+			"producers":[{
+				"id":"producer_id",
+				"broker_list":"",
 				"topics":["topic1", "topic2"],
 				"format":"pb",
 				"thread_num":1,
 				"redis":"tw://10.232.32.2:123:2322",
-			}
-		}],
-		"producers":[{
-			"id":"producer_id",
-			"broker_list":"",
-			"topics":["topic1", "topic2"],
-			"format":"pb",
-			"thread_num":1,
-			"redis":"tw://10.232.32.2:123:2322",
-			"max_queue_size":100000,
-		}]
-	}
-
-	"service_map":{
-		"1":"login",
-		"2":"chat",
-	}
-
+				"max_queue_size":100000,
+			}]
+		}
+	},
+	"biz_conf":{
+		"service_map":{
+			"1":"login",
+			"2":"chat",
+		}
+	},
 }

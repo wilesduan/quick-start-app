@@ -11,6 +11,7 @@ enum kafka_msg_format
 {
 	en_kafka_pb_msg = 1,
 	en_kafka_json_msg = 2,
+	en_kafka_canal_msg = 3,
 };
 
 typedef struct libsrvkit_kafka_consumer_t
@@ -82,6 +83,7 @@ typedef struct rdkafka_msg_cmd_t
 	int format;
 	char* payload;
 	int len;
+	sem_t* sem;
 }rdkafka_msg_cmd_t;
 
 libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const blink::pb_kafka_consumer& conf);

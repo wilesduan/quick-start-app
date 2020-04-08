@@ -13,7 +13,7 @@ static int gen_cli_content(const proto_file_t* proto, const proto_service_t* ser
 static int gen_srv_content(const proto_file_t* proto, const proto_service_t* service, const char* sz_srv_dir);
 static char* get_file_name_ex_proto(const char* name);
 
-static int do_mkdir(const char* mdir)
+int do_mkdir(const char* mdir)
 {
 	int rc = 0;
 	DIR* dir = opendir(mdir);
@@ -28,6 +28,46 @@ static int do_mkdir(const char* mdir)
 
 	return rc;
 }
+
+static void gen_srv_main_file(const proto_file_t* proto, const char* sz_srv_dir)
+{
+	char sz_filename[1024];
+	strncpy(sz_filename, proto->file_name, sizeof(sz_filename));
+	char* filename = strchr(basename(sz_filename), '.');
+	if(filename) *filename = 0;
+	char sz_file_name[1024];
+	snprintf(sz_file_name, sizeof(sz_file_name), "%s/%s.cc", sz_srv_dir, sz_filename);
+
+	FILE* fp = fopen(sz_file_name, "w");
+	if(NULL == fp){
+		printf("failed to open file:%s\n", sz_file_name);
+		return;
+	}
+
+	fprintf(fp, "\n");
+	fprintf(fp, "#include <server.h>\n");
+	for(size_t i = 0; i < proto->services.size(); ++i){
+		fprintf(fp, "#include <proto_%s_%s.h>\n", proto->package, proto->services[i].name);
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fp, "int main(int argc, char** argv)\n");
+	fprintf(fp, "{\n");
+	fprintf(fp, "    server_t* server = malloc_server(argc, argv);\n");
+	fprintf(fp, "    if(NULL == server){\n");
+	fprintf(fp, "        return 0;\n");
+	fprintf(fp, "    }\n\n");
+	for(size_t i = 0; i < proto->services.size(); ++i){
+		fprintf(fp, "    add_service(server, gen_%s_%s_service());\n", proto->package, proto->services[i].name);
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fp, "    run_server(server);\n");
+	fprintf(fp, "    return 0;\n");
+	fprintf(fp, "}");
+
+}
+
 void gen_src_with_proto(const proto_file_t* proto, const char* out_dir)
 {
 	if(NULL == out_dir){
@@ -83,6 +123,10 @@ void gen_src_with_proto(const proto_file_t* proto, const char* out_dir)
 			return;
 		}
 
+	}
+
+	if(proto->services.size()){
+		gen_srv_main_file(proto, sz_srv_dir);
 	}
 }
 
@@ -395,7 +439,7 @@ static void gen_cli_cc_code(const proto_file_t* proto, const proto_service_t* se
 			fprintf(fp, "\tbody.set_service(\"%s\");\n", service->name);
 			fprintf(fp, "\tbody.set_method(%d);\n", method.tag);
 			fprintf(fp, "\tstd::string tmp_payload;\n");
-			fprintf(fp, "\treq->SerializeToString(&tmp_payload);\n");
+			fprintf(fp, "\t%s->SerializeToString(&tmp_payload);\n", method.req->name);
 			fprintf(fp, "\tbody.set_payload(tmp_payload);\n");
 			fprintf(fp, "\tbody.SerializeToString(&str_pb_kafka_msg);\n");
 			fprintf(fp, "\treturn 0;\n");
@@ -719,7 +763,7 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 			fprintf(fp, "\tdo_%s_%s_%s(&ctx, %s);\n", proto->package, service->name, method.name, method.req->name);
 			fprintf(fp, "\tgettimeofday(&end_tv,NULL);\n");
 			fprintf(fp, "\tuint32_t cost = 1000 * (end_tv.tv_sec - start_tv.tv_sec) + (end_tv.tv_usec - start_tv.tv_usec)  / 1000;\n");
-			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost);\n", service->name, method.name);
+			fprintf(fp, "\trefill_trace_point(&ctx, \"%s\", \"%s\", cost, 0);\n", service->name, method.name);
 			fprintf(fp, "\tLOG_INFO(\"#BLINK_NOTICE#[%s@%s|%%s|%%ums|0|%%llu|%%d|%%u][%%s]\", co->uctx.ss_trace_id_s, cost, co->uctx.uid, co->uctx.dev_type, (unsigned)(co->uctx.dev_crc32), %s->ShortDebugString().data());\n", service->name, method.name, method.req->name);
 		}
 		fprintf(fp, "\tdelete %s;\n", method.req->name);
@@ -736,19 +780,33 @@ static void gen_srv_cc_file(const proto_file_t* proto, const proto_service_t* se
 	fprintf(fp, "\n");
     fprintf(fp, "\tINIT_LIST_HEAD(&service->list);\n");
 	fprintf(fp, "\tservice->name = strdup(\"%s\");\n", service->name);
-	fprintf(fp, "\tservice->num_methods= %d;\n", max_tag);
+	fprintf(fp, "\tservice->num_methods = %d;\n", max_tag);
 	fprintf(fp, "\tservice->methods = (fn_method*)calloc(%d, sizeof(fn_method));\n", max_tag+1);
+	fprintf(fp, "\tservice->num_swoole_methods = %lu;\n", service->methods.size());
 	fprintf(fp, "\tservice->swoole_meth = (swoole_method_t*)calloc(%lu, sizeof(swoole_method_t));\n", service->methods.size());
 	for(size_t i = 0; i < service->methods.size(); ++i){
 		fprintf(fp, "\tservice->methods[%d] = fn_pb_%s_%s;\n\n", service->methods[i].tag,service->name, service->methods[i].name);
 
 		fprintf(fp, "\tservice->swoole_meth[%d].method = fn_swoole_%s_%s;\n", (int)i,service->name, service->methods[i].name);
 		fprintf(fp, "\tservice->swoole_meth[%d].method_name = strdup(\"%s\");\n", (int)i, service->methods[i].name);
+
+		if(service->methods[i].database){
+			fprintf(fp, "\tservice->swoole_meth[%d].database = strdup(\"%s\");\n", (int)i, service->methods[i].database);
+		}
+
+		if(service->methods[i].table){
+			fprintf(fp, "\tservice->swoole_meth[%d].table = strdup(\"%s\");\n", (int)i, service->methods[i].table);
+		}
+
+		if(service->methods[i].type){
+			fprintf(fp, "\tservice->swoole_meth[%d].type = strdup(\"%s\");\n", (int)i, service->methods[i].type);
+		}
 	}
 	fprintf(fp, "\treturn service;\n}\n");
     
 	fclose(fp);
 }
+
 
 static int gen_srv_content(const proto_file_t* proto, const proto_service_t* service, const char* sz_srv_dir)
 {

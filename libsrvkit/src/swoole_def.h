@@ -16,7 +16,7 @@ typedef struct swoole_head
 	uint32_t header_reserved;
 	uint32_t header_seq;
 	uint32_t header_len;
-	char cmd[32];
+	char cmd[64];
 }swoole_head_t;
 
 void init_swoole_head(swoole_head_t* head, uint32_t version);

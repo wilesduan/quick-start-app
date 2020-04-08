@@ -22,10 +22,13 @@ int get_lang_by_rpc_ctx(rpc_ctx_t* ctx);
 void add_service(server_t* server, service_t* service);
 int run_server(server_t* server);
 
+void* get_server_biz_conf(server_t* server);
+
+void* get_biz_conf_by_ctx(rpc_ctx_t* ctx);
 void* get_worker_custom_data(rpc_ctx_t* ctx);
 void set_hash_key(rpc_ctx_t* ctx, uint64_t key);
-MYSQL* get_mysql_from_rpc(rpc_ctx_t* rpc, uint64_t shard_key);
-MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* rpc, const char* id);
+MYSQL* get_mysql_from_rpc(rpc_ctx_t* rpc, uint64_t shard_key, int slave = 0);
+MYSQL* get_mysql_from_rpc_by_id(rpc_ctx_t* rpc, const char* id, int slave = 0);
 
 const userctx_t*  get_user_ctx_from_rpc_ctx(rpc_ctx_t* ctx);
 void set_trace_point_cost(blink::TracePoint* point, const char* service, const char* method, int milli_cost);

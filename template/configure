@@ -1,0 +1,5 @@
+pwdir=`pwd`
+sed -i "s:PROJECT_HOME=.*$:PROJECT_HOME=$pwdir:g" common.mk
+
+export CMAKE=$pwdir/cmake
+export DEPS=$pwdir/dep_libs

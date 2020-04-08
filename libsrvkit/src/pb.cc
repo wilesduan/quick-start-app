@@ -131,7 +131,7 @@ static int process_pb_response(ev_ptr_t* ptr, const blink::MsgBody& body)
 	}
 
 	do_fin_request(req_co);
-	del_timeout_event_from_timer(&(worker->timers), &(req_co->req_co_timeout_wheel));
+	del_timer_event(&(worker->timer), &(req_co->rpc_timer));
 
 	req_co->pre = ((worker_thread_t*)(ptr->arg))->wt_co;
 	req_co->sys_code = body.err_code();

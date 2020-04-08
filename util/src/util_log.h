@@ -6,7 +6,7 @@
 extern util_bim_logger_t* g_bim_logger;
 
 #define LOG_DBG(format, ...)     (g_bim_logger && (LEVEL_LOG_DEBUG & g_bim_logger->log_level)) ? (util_write_log(LEVEL_LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ ), 0) : 0
-#define LOG_ERR(format, ...)     (g_bim_logger && (LEVEL_LOG_ERROR & g_bim_logger->log_level)) ? (util_write_log(LEVEL_LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ ), 0) : 0
+#define LOG_ERR(format, ...)     util_write_log(LEVEL_LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ )
 #define LOG_INFO(format, ...)    (g_bim_logger && (LEVEL_LOG_INFO & g_bim_logger->log_level)) ? (util_write_log(LEVEL_LOG_INFO, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ ), 0) : 0
 #define LOG_WARN(format, ...)    (g_bim_logger && (LEVEL_LOG_WARN & g_bim_logger->log_level)) ? (util_write_log(LEVEL_LOG_WARN, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ ), 0) : 0
 #define LOG_FORCE(format, ...)   (g_bim_logger && (LEVEL_LOG_FORCE & g_bim_logger->log_level)) ? (util_write_log(LEVEL_LOG_FORCE, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__ ), 0) : 0

@@ -7,6 +7,7 @@
 #include <rbtree.h>
 #include <async_task.h>
 #include <config.pb.h>
+#include <list.h>
 
 enum mysql_wrapper_type
 {
@@ -16,7 +17,7 @@ enum mysql_wrapper_type
 
 struct mysql_inst_t;
 
-typedef struct mysql_conn_inst_t
+typedef struct mysql_host_t
 {
 	char* host;
 	int port;
@@ -31,18 +32,20 @@ typedef struct mysql_conn_inst_t
 	time_t last_connect;
 	int connected;
 
-	struct mysql_inst_t* prev;
-
 	rb_node node;
 
 	async_routine_t* asyncer;
-}mysql_conn_inst_t;
+	list_head slaves;
+	char pre_db[128];
+}mysql_host_t;
 
 typedef struct mysql_inst_t
 {
 	char* id;
 	char* dbname;
-	mysql_conn_inst_t* conn_inst;
+	mysql_host_t* master;
+	list_head slaves;
+	size_t cnt_slave;
 	char* charset;
 	int flag;
     uint64_t uts;
@@ -128,11 +131,18 @@ int mysql_result_bind_doulbe(mysql_query_t* query, double* value, my_bool* is_nu
 int mysql_result_bind_str(mysql_query_t* query, char* sz_str, my_bool* is_null, size_t* len, my_bool* error);
 int mysql_result_bind_binary(mysql_query_t* query, char* binary, my_bool* is_null, size_t* len, my_bool* error);
 
+#define DEFINE_MYSQL_ROW_FIELD(type, field) type field; my_bool is_##field##_null; my_bool is_##field##_error; unsigned long field##_len;
+#define BIND_MYSQL_RESULT(query, row, type, field) mysql_result_bind_##type(query, &row.field, &row.is_##field##_null, &row.field##_len,&row.is_##field##_error);
+#define BIND_MYSQL_RESULT_STR(query, row, field, len) \
+	row.field = new char[len]; \
+    row.field##_len = len; \
+    mysql_result_bind_str(query, row.field, &row.is_##field##_null, &row.field##_len,&row.is_##field##_error);
+
 int execute_mysql_query(mysql_query_t* query);
 int execute_query(mysql_query_t* query);
 
 int init_wrapper_with_config(mysql_wrapper_t* wrapper, const blink::pb_mysql_config& pb_mysql);
-int connect_2_mysql_inst(mysql_conn_inst_t* inst);
+int connect_2_mysql_inst(mysql_host_t* inst);
 /*
 int set_mysql_bind_int_32(MYSQL_BIND* bind, const char* column, const int* value)
 int set_mysql_bind_uint_32(MYSQL_BIND* bind, const char* column, const uint32_t* value)

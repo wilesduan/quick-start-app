@@ -47,8 +47,7 @@ coroutine_t* co_create(fn_co_routine pfn, void* arg1, void* arg2, fn_co_recycle 
 	*/
 
 	INIT_LIST_HEAD(&(rt->free_list));
-	INIT_LIST_HEAD(&(rt->req_co_timeout_wheel));
-
+	init_timer_event(&rt->rpc_timer, do_check_co_timeout);
 	return rt;
 }
 
@@ -97,6 +96,8 @@ void co_release(coroutine_t** routine)
 	if(!((*routine)->end)){
 		return;
 	}
+
+	decr_worker_biz_config_version((worker_thread_t*)((*routine)->worker), (*routine)->biz_config_version);
 
 	if((*routine)->pfn_recycle){
 		fn_co_recycle fn = (*routine)->pfn_recycle;
@@ -206,7 +207,7 @@ static void recycle_co(void* recycler, coroutine_t* co)
 	INIT_LIST_HEAD(&co->free_list);
 
 	worker_thread_t* worker = (worker_thread_t*)recycler;
-	del_timeout_event_from_timer(&(worker->timers), &(co->req_co_timeout_wheel));
+	del_timer_event(&(worker->timer), &(co->rpc_timer));
 
 	list_del(&(co->async_req_out_list));
 	INIT_LIST_HEAD(&(co->async_req_out_list));
@@ -291,6 +292,10 @@ coroutine_t* get_co_ctx(worker_thread_t* worker, fn_method fn)
 
 	co->worker = worker;
 	co->timeout = 0;
+
+	server_t* server = (server_t*)(worker->mt);
+	co->biz_config_version = server->biz_conf_version;
+	incr_worker_biz_config_version(worker, co->biz_config_version);
 
 	return co;
 }
@@ -418,3 +423,4 @@ void end_batch_request(coroutine_t* co, std::vector<int>* rets)
 	co->batch_mode = 0;
 	co_free_batch_rslt_list(co);
 }
+

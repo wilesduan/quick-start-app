@@ -1,0 +1,22 @@
+./configure
+
+project_path=../
+#####create dir#####
+mkdir -p $project_path/proto/service
+mkdir -p $project_path/apps
+mkdir -p $project_path/apps/common/bo
+mkdir -p $project_path/apps/common/stub
+
+#####cp compile scripts####
+cp ./template/compile.sh $project_path/proto/service
+cp ./template/Makefile $project_path/
+cp ./template/common.mk $project_path/
+cp ./template/app_common_Makefile $project_path/apps/common/Makefile
+cp ./template/configure $project_path/
+
+####substitute PROJECT_HOME####
+cd $project_path
+pwdir=`pwd`
+sed -i "s:PROJECT_HOME=.*$:PROJECT_HOME=$pwdir:g" ./proto/service/compile.sh
+sed -i "s:PROJECT_HOME=.*$:PROJECT_HOME=$pwdir:g" ./common.mk
+cd -

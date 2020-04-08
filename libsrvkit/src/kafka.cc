@@ -6,6 +6,7 @@
 #include <redis.h>
 #include <stdarg.h>
 #include <server_inner.h>
+#include <canal.h>
 
 static void run_one_consumer(libsrvkit_kafka_consumer_t* consumer);
 static void run_one_producer(libsrvkit_kafka_produecer_t* producer);
@@ -49,6 +50,8 @@ libsrvkit_kafka_consumer_t* libsrvkit_malloc_consumer(server_t* server, const bl
 	consumer->msg_format = en_kafka_pb_msg;
 	if(!strcmp(conf.format().data(), "json")){
 		consumer->msg_format = en_kafka_json_msg;
+	}else if(!strcmp(conf.format().data(), "canal")){
+		consumer->msg_format = en_kafka_canal_msg;
 	}
 
 	if(conf.has_redis()){
@@ -235,18 +238,21 @@ static void rebalance_cb (rd_kafka_t *rk, rd_kafka_resp_err_t err,rd_kafka_topic
 	}
 }
 
-static void notify_worker_kafka_msg(libsrvkit_kafka_consumer_t* consumer, const void* payload, size_t len)
+static int notify_worker_kafka_msg(sem_t* sem, libsrvkit_kafka_consumer_t* consumer, const void* payload, size_t len)
 {
+	/*
 	char* buff = (char*)malloc(len);
 	if(NULL == buff){
-		return;
+		return -1;
 	}
+	*/
 
 	rdkafka_msg_cmd_t cmd;
 	cmd.format = consumer->msg_format;
-	cmd.payload = buff;
-	memcpy(cmd.payload, payload, len);
+	cmd.payload = (char*)payload; //buff;
+	//memcpy(cmd.payload, payload, len);
 	cmd.len = len;
+	cmd.sem = sem;
 	int idx = random()%(consumer->server->num_worker);
 	worker_thread_t* wt = consumer->server->array_worker + idx;
 	size_t write_len = 0;
@@ -259,8 +265,9 @@ static void notify_worker_kafka_msg(libsrvkit_kafka_consumer_t* consumer, const 
 		}
 
 		if(rc < 0){
-			free(buff);
-			return;
+			LOG_ERR("write kafka pipe failed");
+			//free(buff);
+			return -2;
 		}
 
 		write_len += rc;
@@ -277,6 +284,7 @@ static void notify_worker_kafka_msg(libsrvkit_kafka_consumer_t* consumer, const 
 	*/
 
 	LOG_DBG("notify kafka msg to worker:%d:%llu", idx, (long long unsigned)wt);
+	return 0;
 }
 
 static void notify_worker_dr_finished(rpc_ctx_t* ctx)
@@ -297,12 +305,12 @@ void async_fin_kafka_dr(rpc_ctx_t* ctx)
 	co_release(&co);
 }
 
-static void msg_consume (libsrvkit_kafka_consumer_t* consumer, rd_kafka_message_t *rkmessage, void *opaque) 
+static int msg_consume (sem_t* sem, libsrvkit_kafka_consumer_t* consumer, rd_kafka_message_t *rkmessage, void *opaque) 
 {
 	if (rkmessage->err) {
 		if (rkmessage->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
 			LOG_DBG("Consumer reached end of %s [%d] message queue at offset %llu", rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset);
-			return;
+			return -1;
 		}
 
 		if (rkmessage->rkt){
@@ -310,22 +318,26 @@ static void msg_consume (libsrvkit_kafka_consumer_t* consumer, rd_kafka_message_
 		}else{
 			LOG_ERR("Consumer error: %s: %s", rd_kafka_err2str(rkmessage->err), rd_kafka_message_errstr(rkmessage));
 		}
-		return;
+		return -2;
 	}
 
 	LOG_INFO("RDKAFKA Message (topic %s [%d] offset %llu %zd bytes", rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, rkmessage->len);
-	notify_worker_kafka_msg(consumer, rkmessage->payload, rkmessage->len);
+	int rc = notify_worker_kafka_msg(sem, consumer, rkmessage->payload, rkmessage->len);
+	if(rc){
+		return rc;
+	}
 
 	progress_data_t* progress = (progress_data_t*)calloc(1, sizeof(progress_data_t));
 	progress->worker = (worker_thread_t*)opaque;
 	snprintf(progress->key, sizeof(progress->key), "kafka_consume_offset_%s_%s_%d", consumer->group_id, rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition);
 	progress->last_offset = rkmessage->offset;
 	progress->last_update_time = time(NULL);
-	int rc = add_task_2_routine(consumer->async_progress, fn_upload_progress, progress);
+	rc = add_task_2_routine(consumer->async_progress, fn_upload_progress, progress);
 	if(rc){
 		LOG_ERR("[ALARM] failed to update progress");
 		free(progress);
 	}
+	return 0;
 	//call_progress_reids((worker_thread_t*)opaque, "hmset kafka_consume_offset_%s_%s_%d last_offset %d last_update_time %lld", consumer->group_id, rd_kafka_topic_name(rkmessage->rkt), rkmessage->partition, rkmessage->offset, time(NULL));
 }
 
@@ -382,10 +394,16 @@ static void* pthread_kafka_consumer(void* arg)
 		goto end;
 	}
 
+	sem_t sem;
+	sem_init(&sem, 0, 0);
 	while(!consumer->server->exit){
 		rkmessage = rd_kafka_consumer_poll(rk, 1000);
 		if(rkmessage){
-			msg_consume(consumer, rkmessage, &dummy_worker);
+			int rc = msg_consume(&sem, consumer, rkmessage, &dummy_worker);
+			if(!rc){
+				sem_wait(&sem);
+				LOG_INFO("kafka msg consumed");
+			}
 			rd_kafka_message_destroy(rkmessage);
 		}
 	}
@@ -729,11 +747,29 @@ int fn_on_recv_kafka_msg(void* arg)
 					//process_swoole_request(ptr, );
 				}
 				break;
+			case en_kafka_canal_msg:
+				{
+					json_tokener *tokener = json_tokener_new();
+					json_object* obj = json_tokener_parse_ex(tokener, (const char*)cmd.payload, (int)cmd.len); 
+					if(!obj){
+						LOG_ERR("failed to parse canal msg:%.*s", cmd.len, (const char*)cmd.payload);
+						json_tokener_free(tokener);
+						break;
+					}
+
+					process_canal_request(ptr, obj);
+
+					json_object_put(obj);
+					json_tokener_free(tokener);
+					//TODO
+				}
+				break;
 			default:
 				break;
 		}
 
-		free(cmd.payload);
+		//free(cmd.payload);
+		sem_post(cmd.sem);
 	}
 	return 0;
 }

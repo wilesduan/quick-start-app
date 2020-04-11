@@ -112,9 +112,14 @@ int gen_header_file(const std::string& package, const std::vector<t_mysql_query>
 	fprintf(fp, "};\n");
 	fprintf(fp, "typedef struct mysql_selector_t\n");
 	fprintf(fp, "{\n");
-	fprintf(fp, "\tconst char* db_id;\n");
+	fprintf(fp, "\tchar db_id[64];\n");
 	fprintf(fp, "\tuint64_t shard_key;\n\n");
-	fprintf(fp, "\tconst char* table;\n");
+	fprintf(fp, "\tchar table[64];\n");
+	fprintf(fp, "\n\tmysql_selector_t(){\n"
+			      "\t\tdb_id[0] = 0;\n"
+				  "\t\tshard_key = 0;\n"
+				  "\t\ttable[0] = 0;\n"
+			      "\t}");
 	fprintf(fp, "}mysql_selector_t;\n");
 	fprintf(fp, "#endif//__MYSQL_OP_DB_SELECTOR__\n\n");
 
@@ -464,22 +469,22 @@ void gen_select_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "int do_%s_select_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_select_%s_condition_t* conditions, std::vector<%s_select_%s_result_t>& results)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
 	if(!query.table.size()){
-		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\tif(!strlen(selector.table)){\n");
 		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
 		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 		fprintf(fp, "\t}\n\n");
 	}
 
 	const char* slave = query.slave?"EN_SELECTOR_DB_USE_SLAVE":"EN_SELECTOR_DB_USE_MASTER";
-	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id, %s):get_mysql_from_rpc(ctx, selector.shard_key, %s);\n", slave, slave);
+	fprintf(fp, "\tMYSQL* mysql = strlen(selector.db_id)?get_mysql_from_rpc_by_id(ctx, selector.db_id, %s):get_mysql_from_rpc(ctx, selector.shard_key, %s);\n", slave, slave);
 	fprintf(fp, "\tif(!mysql){\n");
-	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
+	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", strlen(selector.db_id)?selector.db_id:\"NULL\", selector.shard_key);\n");
 	fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 	fprintf(fp, "\t}\n");
 
 	fprintf(fp, "\n\tchar sql[1024];\n");
 	if(query.table.size()){
-		fprintf(fp, "\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+		fprintf(fp, "\tstrlen(selector.table)?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
 	}else{
 		fprintf(fp, "\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
 	}
@@ -511,15 +516,15 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "int do_%s_insert_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, std::vector<%s_insert_%s_columns_t>& values, %s_insert_%s_update_t* update_duplicate_columns, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
 	if(!query.table.size()){
-		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\tif(!strlen(selector.table)){\n");
 		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
 		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 		fprintf(fp, "\t}\n\n");
 	}
 
-	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
+	fprintf(fp, "\tMYSQL* mysql = strlen(selector.db_id)?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
 	fprintf(fp, "\tif(!mysql){\n");
-	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
+	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", strlen(selector.db_id)?selector.db_id:\"NULL\", selector.shard_key);\n");
 	fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 	fprintf(fp, "\t}\n");
 
@@ -527,7 +532,7 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\tsize_t sql_len = 0;\n");
 	fprintf(fp, "\tif(values.size() > 1){\n");
 	fprintf(fp, "\t\t//batch inserting\n");
-	fprintf(fp, "\t\tif(!selector.table){\n");
+	fprintf(fp, "\t\tif(!strlen(selector.table)){\n");
 	fprintf(fp, "\t\t\tLOG_ERR(\"MUST HAVE table when batch inserting\");\n");
 	fprintf(fp, "\t\t\treturn EN_INVALID_DB_SELECTOR;\n");
 	fprintf(fp, "\t\t}\n");
@@ -566,7 +571,7 @@ void gen_insert_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "\t\tsql_len = 1024;\n");
 
 	if(query.table.size()){
-		fprintf(fp, "\t\tselector.table?snprintf(sql_buff, sql_len, \"%s\", selector.table):snprintf(sql_buff, sql_len, \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+		fprintf(fp, "\t\tstrlen(selector.table)?snprintf(sql_buff, sql_len, \"%s\", selector.table):snprintf(sql_buff, sql_len, \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
 	}else{
 		fprintf(fp, "\t\tsnprintf(sql_buff, sql_len, \"%s\", selector.table);\n", query.sql.data());
 	}
@@ -607,22 +612,22 @@ void gen_update_cc(FILE* fp, const std::string& package, const t_mysql_query& qu
 	fprintf(fp, "int do_%s_update_%s(rpc_ctx_t* ctx, const mysql_selector_t& selector, %s_update_%s_column_t* columns, %s_update_%s_condition_t* conditions, int* affect_rows)\n", package.data(), query.tag.data(), package.data(), query.tag.data(), package.data(), query.tag.data());
 	fprintf(fp, "{\n");
 	if(!query.table.size()){
-		fprintf(fp, "\tif(!selector.table){\n");
+		fprintf(fp, "\tif(!strlen(selector.table)){\n");
 		fprintf(fp, "\t\tLOG_ERR(\"miss table\");\n");
 		fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 		fprintf(fp, "\t}\n\n");
 	}
 
-	fprintf(fp, "\tMYSQL* mysql = selector.db_id?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
+	fprintf(fp, "\tMYSQL* mysql = strlen(selector.db_id)?get_mysql_from_rpc_by_id(ctx, selector.db_id):get_mysql_from_rpc(ctx, selector.shard_key);\n");
 	fprintf(fp, "\tif(!mysql){\n");
-	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", selector.db_id?selector.db_id:\"NULL\", selector.shard_key);\n");
+	fprintf(fp, "\t\tLOG_ERR(\"failed to get MYSQL inst. selector:%%s:%%llu\", strlen(selector.db_id)?selector.db_id:\"NULL\", selector.shard_key);\n");
 	fprintf(fp, "\t\treturn EN_INVALID_DB_SELECTOR;\n");
 	fprintf(fp, "\t}\n");
 
 	fprintf(fp, "\n\tchar sql[1024];\n");
 
 	if(query.table.size()){
-		fprintf(fp, "\tselector.table?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
+		fprintf(fp, "\tstrlen(selector.table)?snprintf(sql, sizeof(sql), \"%s\", selector.table):snprintf(sql, sizeof(sql), \"%s\", \"%s\");\n", query.sql.data(), query.sql.data(), query.table.data());
 	}else{
 		fprintf(fp, "\tsnprintf(sql, sizeof(sql), \"%s\", selector.table);\n", query.sql.data());
 	}

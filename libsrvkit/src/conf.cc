@@ -93,6 +93,10 @@ int load_cfg(server_t* server, const char* cfg)
 		add_dep_service_url_2_zk(&server->zk, dep_service.name().data(), dep_service.url().data());
 	}
 
+	for(int i = 0; i < server->pb_config->register_zks_size(); ++i){
+		add_regist_path_2_zk(&server->zk, server->pb_config->register_zks(i).data());
+	}
+
 	add_regist_path_2_zk(&server->zk, server->pb_config->register_zk().data());
 	return 0;
 }

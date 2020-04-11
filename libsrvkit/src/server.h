@@ -10,6 +10,8 @@
 #include <http_client.h>
 #include <vector>
 
+server_env_t* get_server_env();
+
 server_t* malloc_server(int argc, char** argv);
 
 void add_mt_call_backs(server_t* server, mt_call_backs_t mt_fns);

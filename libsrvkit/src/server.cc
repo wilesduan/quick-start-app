@@ -72,6 +72,30 @@ int g_exit_status = 0;
 extern int g_sync_call_redis;
 extern int g_stop_zk_thread;
 int g_log_trace_point = 0;
+server_env_t g_server_env;
+
+server_env_t* get_server_env()
+{
+	return &g_server_env;
+}
+
+#define K_SERVICE_ENV "/etc/machine_env"
+#define K_DEFALUT_IDC "idc_123"
+#define K_DEFALUT_GROUP "default"
+
+void init_server_env()
+{
+	json_object* env = read_conf_from_file(K_SERVICE_ENV);
+	json_object* idc = NULL; 
+	json_object* group = NULL; 
+	if(env){
+		json_object_object_get_ex(env, "idc", &idc);
+		json_object_object_get_ex(env, "group", &group);
+	}
+
+	g_server_env.idc = strdup(idc?json_object_get_string(idc):K_DEFALUT_IDC);
+	g_server_env.group = strdup(group?json_object_get_string(group):K_DEFALUT_GROUP);
+}
 
 void usage(char* app)
 {
@@ -111,34 +135,25 @@ static void parse_argv(int argc, char** argv)
 
 server_t* malloc_server(int argc, char** argv)
 {
+	init_server_env();
+
 	zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); 
 	parse_argv(argc, argv);
-	char* cfg = g_sz_cfg;
-
-
-	json_object* conf = load_cfg(cfg);
-	if(NULL == conf){
-		printf("failed to load config:%s\n", cfg);
-		return NULL;
-	}
 
 	server_t* server = (server_t*)calloc(1, sizeof(server_t));
 	if(NULL == server){
 		printf("failed to calloc server\n");
-		json_object_put(conf);
 		return NULL;
 	}
 
-	server->config = conf;
-	json_object_object_get_ex(server->config, "sys_conf", &server->sys_conf);
-	json_object_object_get_ex(server->config, "biz_conf", &server->biz_conf);
-	server->biz_conf_version = 1;
-	server->pb_config = new blink::pb_config;
-	int rt = util_parse_pb_from_json(server->pb_config, server->sys_conf);
-	if(rt){
-		printf("######failed to parse pb from json######\n");
+	init_zk(&server->zk);
+	int rc = load_cfg(server, g_sz_cfg);
+	if(rc){
+		printf("failed to load config:%s\n", g_sz_cfg);
+		free(server);
+		return NULL;
 	}
-	printf("pb config:%s\n", server->pb_config->ShortDebugString().data());
+
 	server->mt_fns.do_recv_quit_signal = do_recv_quit_signal;
 	server->mt_fns.do_recv_term_signal = do_recv_term_signal;
 	server->mt_fns.do_recv_reload_signal = do_recv_reload_signal;
@@ -520,10 +535,7 @@ static void run_child(server_t* server)
 	run_kafka_consumers(server);
 	run_kafka_producers(server);
 
-	pthread_t zk_thread = 0;
-	if(should_connect_2_zk(server)){
-		pthread_create(&zk_thread, NULL, run_zk_thread, server);
-	}
+	run_zk_threads(server);
 
 	add_signal_fd(server);
 	getrusage(RUSAGE_SELF, &(server->pre_usage));
@@ -556,11 +568,14 @@ static void run_child(server_t* server)
 	}
 
 	g_svr_exit = 1;
-	g_stop_zk_thread = 1;
+
+	stop_zk_threads(server);
+	/*
 	if(zk_thread){
 		pthread_join(zk_thread, NULL);
 		sleep(10);
 	}
+	*/
 
 	LOG_INFO("server stop");
 
@@ -653,11 +668,11 @@ restart_child:
 		//unlink(get_pid_file(m_ctx.sz_application_name));
 		child = fork();
 		if(child == 0){
-			if(server->config)
-				json_object_put(server->config);
-			server->config = load_cfg(g_sz_cfg);
-			server->pb_config->Clear();
-			util_parse_pb_from_json(server->pb_config, server->config);
+			release_zk(&server->zk);
+			while(load_cfg(server, g_sz_cfg)){
+				sleep(2);
+				LOG_ERR("failed to load config:%s", g_sz_cfg);
+			}
 
 			g_exit_status = 0;
 			run_child(server);

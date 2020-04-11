@@ -5,7 +5,6 @@
 #include <pthread.h>
 #include <co_routine.h>
 #include <bim_util.h>
-#include <zookeeper.h>
 #include <hircluster.h>
 #include <mysql_wrapper.h>
 #include <sys/time.h>
@@ -18,6 +17,7 @@
 #include <blink.pb.h>
 #include <config.pb.h>
 #include <net.h>
+#include <zk.h>
 
 
 #define K_MAX_NAME_LEN 20
@@ -277,8 +277,6 @@ typedef struct proto_client_t
 	en_protocal_type proto_type;
 	en_sock_type sock_type;
 
-	char* watcherCtx[2];
-
 	int req_queue_size;
 	size_t next_cli;
 	size_t num_clients;
@@ -456,6 +454,12 @@ typedef struct listen_t
 	int accept_strategy;
 }listen_t;
 
+typedef struct server_env_t
+{
+	char* idc;
+	char* group;
+}server_env_t;
+
 typedef struct server_t
 {
 	char* appname;
@@ -479,7 +483,8 @@ typedef struct server_t
 
 	int exit;
 
-	zhandle_t* zkhandle;
+	//zhandle_t* zkhandle;
+	zk_t zk;
 
 	list_head routines;
 	list_head services;
@@ -499,7 +504,7 @@ int connect_2_real_redis(redis_client_t* redis, const char* link, const char* li
 fn_method get_fn_method(worker_thread_t* worker, const char* name, int method);
 
 //conf.cc
-json_object* load_cfg(const char* cfg);
+int load_cfg(server_t* server, const char* cfg);
 void get_worker_oldest_config(worker_thread_t* worker, cmd_get_oldest_biz_config_t* req);
 void wait_worker_release_old_config(worker_thread_t* worker, uint64_t biz_conf_version);
 void incr_worker_biz_config_version(worker_thread_t* worker, uint64_t biz_config_version);
@@ -529,6 +534,7 @@ void init_proto_uctx(blink::UserContext* proto_user_ctx);
 void append_trace_point(coroutine_t* co, rpc_info_t* info, const blink::UserContext* recv_ctx, int err_code);
 void add_batch_trace_point(coroutine_t* co);
 void fill_batch_trace_point_cost(coroutine_t* co);
+json_object* read_conf_from_file(const char* cfg);
 
 //event.cc
 void add_co_timeout_wheel(worker_thread_t* worker, coroutine_t* co);
@@ -591,13 +597,6 @@ int async_req_with_swoole_msg(worker_thread_t* worker, coroutine_t* co, const ch
 fn_method get_swoole_fn_method(worker_thread_t* worker, const char* service, const char* method_name);
 int do_process_swoole_request(worker_thread_t* worker, ev_ptr_t* ptr, swoole_head_t* head, fn_method fn, json_object* root, json_object* header, json_object* swoole_body, json_object* swoole_http, json_object* swoole_ctx);
 uint32_t gen_32_id(worker_thread_t* worker);
-
-//zk.cc
-bool should_connect_2_zk(server_t* server);
-void* run_zk_thread(void* arg);
-void sync_get_content_from_zk(const char* host, const char* path, char* buffer, int* len);
-bool compare_ip_port(const std::pair<char*, int>& p1, const std::pair<char*, int>& p2);
-void get_ip_port_from_zk(const char* url, std::vector<std::pair<char*, int> >& ip_ports);
 
 //http.cc
 int process_http_request_from_ev_ptr(ev_ptr_t* ptr);

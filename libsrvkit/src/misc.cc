@@ -351,3 +351,18 @@ void parse_zk_url(const char* url, char** host, char** path, char** added_group)
 	*added_group = strndup(p, delim - p);
 }
 
+json_object* read_conf_from_file(const char* cfg)
+{
+	if(NULL == cfg){
+		return NULL;
+	}
+
+	char* fcontent = read_file_content(cfg);
+	if(NULL == fcontent){
+		return NULL;
+	}
+
+	json_object* obj = json_tokener_parse(fcontent);
+	free(fcontent);
+	return obj;
+}

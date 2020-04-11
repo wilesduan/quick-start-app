@@ -4,10 +4,9 @@
 #include <zookeeper_log.h>
 #include <zookeeper.jute.h>
 #include <zk_adaptor.h>
+#include <server.h>
 
 #define gettid() syscall(__NR_gettid)  
-#define K_SERVICE_GROUP "/etc/machine_group"
-#define K_DEFALUT_GROUP "default"
 
 extern char g_ip[24];
 extern char* g_zk_config_host;
@@ -16,15 +15,15 @@ extern char g_start_time[128];
 extern char* g_app_name;
 extern int g_exit_status;
 
-pthread_mutex_t zk_mutex = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t zk_mutex = PTHREAD_MUTEX_INITIALIZER;
 int g_stop_zk_thread = 0;
 
-static char* get_first_line_content(char* content);
+//static char* get_first_line_content(char* content);
 static void zk_state_watcher(zhandle_t* zkhandle, int type, int state, const char* path, void* ctx);
 
-
-static int restart_server_if_needed(server_t* server, json_object* js_sys_conf)
+static int restart_server_if_needed(zk_inst_t* inst, json_object* js_sys_conf)
 {
+	server_t* server = inst->server;
 	json_object* obj = NULL;
 	json_object_object_get_ex(js_sys_conf, "auto_load", &obj);
 	int auto_load = obj?json_object_get_int(obj):0;
@@ -40,12 +39,12 @@ static int restart_server_if_needed(server_t* server, json_object* js_sys_conf)
 	//2. get zk lock
 	while(1){
 		// /libsrvkit/autoload/service
-		zoo_create(server->zkhandle, "/libsrvkit", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-		zoo_create(server->zkhandle, "/libsrvkit/autoload", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-		zoo_create(server->zkhandle, "/libsrvkit/autoload/", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		zoo_create(inst->zkhandle, "/libsrvkit", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		zoo_create(inst->zkhandle, "/libsrvkit/autoload", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+		zoo_create(inst->zkhandle, "/libsrvkit/autoload/", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
 		char tmp[256];
 		snprintf(tmp, 256, "/libsrvkit/autoload/%s", g_app_name);
-		int rc = zoo_create(server->zkhandle, tmp, g_ip, strlen(g_ip), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
+		int rc = zoo_create(inst->zkhandle, tmp, g_ip, strlen(g_ip), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
 		if(rc != ZOK){
 			return 0;
 		}
@@ -98,12 +97,13 @@ int reload_biz_conf_if_needed(server_t* server, json_object* js_biz_conf)
 	return 1;
 }
 
-static void sync_config_from_zk(server_t* server)
+static void sync_config_from_zk(zk_inst_t* inst)
 {
-	if(!g_zk_config_path){
+	if(!inst->config_path){
 		return;
 	}
 
+	server_t* server = inst->server;
 	int daemon = server->pb_config->daemon(); 
 	if(!daemon){
 		return;
@@ -113,7 +113,7 @@ static void sync_config_from_zk(server_t* server)
 	buffer[0] = 0;
 	int len = 102400-1;
 
-	int rc = zoo_get(server->zkhandle, g_zk_config_path, 0, buffer, &len, NULL);
+	int rc = zoo_get(inst->zkhandle, inst->config_path, 0, buffer, &len, NULL);
 	if(rc != ZOK){
 		return;
 	}
@@ -127,7 +127,7 @@ static void sync_config_from_zk(server_t* server)
 
 	json_object* js_sys_conf = NULL;
 	json_object_object_get_ex(js_cfg, "sys_conf", &js_sys_conf);
-	rc = restart_server_if_needed(server, js_sys_conf);
+	rc = restart_server_if_needed(inst, js_sys_conf);
 	if(rc){
 		json_object_put(js_cfg);
 		return;
@@ -151,6 +151,7 @@ static void sync_config_from_zk(server_t* server)
 
 #define K_MAX_ZK_PATH_LEN 1024
 #define K_MAX_SERVICE_GROUP_LEN 128
+/*
 static void get_register_path_group(server_t* server, char* path, char* group)
 {
 	static char sz_path[K_MAX_ZK_PATH_LEN] = {0};
@@ -187,18 +188,21 @@ static void get_register_path_group(server_t* server, char* path, char* group)
 	strcpy(path, sz_path);
 	strcpy(group, sz_group);
 }
+*/
 
 //这个名字太傻
-static int register_srv_to_zk(server_t* server, int regist)
+static int do_register_srv_to_zk(zk_inst_t* inst, regist_t* reg, int regist)
 {
-	if(!server->zkhandle){
+	if(!inst->zkhandle){
 		LOG_ERR("zookeeper handle is null");
 		return 0;
 	}
 
+	server_t* server = inst->server;
 	char path[1024] = {0};
 	char group[128] = {0};
-	get_register_path_group(server, path, group);
+	strncpy(path, reg->path, sizeof(path));
+	strncpy(group, reg->group, sizeof(group));
 	size_t len = strlen(path);
 	if(len == 0){
 		return 0;
@@ -246,7 +250,7 @@ static int register_srv_to_zk(server_t* server, int regist)
 		if(strcmp(lit->ip, "0.0.0.0") == 0){
 			struct sockaddr_in addr;
 			socklen_t addr_len = sizeof(addr);
-			getsockname(server->zkhandle->fd, (sockaddr*)&addr, &addr_len);
+			getsockname(inst->zkhandle->fd, (sockaddr*)&addr, &addr_len);
 			inet_ntop(AF_INET, &(addr.sin_addr), ip, sizeof(ip));
 
 			bool valid_ip = false;
@@ -295,13 +299,13 @@ static int register_srv_to_zk(server_t* server, int regist)
 			}
 			path_vector.data[part-1] = strdup(path);
 			for(int i = 0; i < part-1; ++i){
-				zoo_create(server->zkhandle, path_vector.data[i], "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+				zoo_create(inst->zkhandle, path_vector.data[i], "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
 			}
 
 			if(regist){
-				zoo_create(server->zkhandle, path_vector.data[part-1], js_group, strlen(js_group), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
+				zoo_create(inst->zkhandle, path_vector.data[part-1], js_group, strlen(js_group), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, NULL, 0);
 			}else{
-				zoo_delete(server->zkhandle, path_vector.data[part-1], -1);
+				zoo_delete(inst->zkhandle, path_vector.data[part-1], -1);
 			}
 		}
 	}
@@ -311,21 +315,37 @@ static int register_srv_to_zk(server_t* server, int regist)
 	return 0;
 }
 
+static int register_srv_to_zk(zk_inst_t* inst, int regist)
+{
+	if(!inst->zkhandle){
+		LOG_ERR("zookeeper handle is null");
+		return 0;
+	}
+
+	list_head *p = NULL;
+	list_for_each(p, &inst->reg_list){
+		regist_t* reg = list_entry(p, regist_t, list);
+		do_register_srv_to_zk(inst, reg, regist);
+	}
+
+	return 0;
+}
+
 static void fn_get_zknode_children(int rc, const struct String_vector* strings, const void* data);
 static void fn_watch_zknode_children(zhandle_t* zkhandle, int type, int state, const char* path, void* watcherCtx)
 {
 	printf("fn_watch_zknode_children in thread:%ld\n", gettid());
 	if(state == ZOO_CONNECTED_STATE){
-		pthread_mutex_lock(&zk_mutex);
+		zk_inst_t* inst = (zk_inst_t*)(((char**)watcherCtx)[0]);
+		pthread_mutex_lock(&inst->zk_mutex);
 		LOG_INFO("zk event path:%s type:%d", path, type);
-		server_t* server = (server_t*)(((char**)watcherCtx)[0]);
-		if(server && server->zkhandle){
-			zoo_awget_children(server->zkhandle, path, fn_watch_zknode_children, watcherCtx, fn_get_zknode_children, watcherCtx);
+		if(inst && inst->zkhandle){
+			zoo_awget_children(inst->zkhandle, path, fn_watch_zknode_children, watcherCtx, fn_get_zknode_children, watcherCtx);
 		}else{
 			LOG_ERR("zk is down");
 		}
 
-		pthread_mutex_unlock(&zk_mutex);
+		pthread_mutex_unlock(&inst->zk_mutex);
 	}
 }
 
@@ -344,9 +364,7 @@ static bool check_is_added_group(const char* group, const char* added_group)
 
 static void get_same_group_node(zhandle_t* zkhandle, const char* zk_path, const String_vector* childrens, String_vector* group_vector, char* added_group)
 {
-	char* content = read_file_content(K_SERVICE_GROUP);
-	const char* c_group = content?get_first_line_content(content):K_DEFALUT_GROUP;
-
+	const char* c_group = get_server_env()->group;
 	memset(group_vector, 0, sizeof(String_vector));
 	group_vector->count = 0;
 	group_vector->data = (char**)calloc(childrens->count, sizeof(char*));
@@ -397,34 +415,33 @@ static void get_same_group_node(zhandle_t* zkhandle, const char* zk_path, const 
 		}
 	}
 	free(added_group_vector.data);
-
-	if(content) free(content);
 }
 
-static void update_dep_service(server_t* server, proto_client_t* cli, const struct String_vector* dep_service)
+static void update_dep_service(zk_inst_t* inst, dep_service_t* dep, const struct String_vector* dep_service)
 {
-	if(NULL == cli || NULL == dep_service || dep_service->count == 0){
+	if(NULL == dep || NULL == dep_service || dep_service->count == 0){
 		return;
 	}
 
-	char* zk_path = NULL;
-	char* added_group = NULL;
-	parse_zk_url(cli->url, NULL, &zk_path, &added_group);
+	char* zk_path = dep->path;
+	char* added_group = dep->added_group;
+	//parse_zk_url(cli->url, NULL, &zk_path, &added_group);
 	String_vector group_vector;
 	memset(&group_vector, 0, sizeof(group_vector));
 	if(zk_path){
-		get_same_group_node(server->zkhandle, zk_path, dep_service, &group_vector, added_group);
+		get_same_group_node(inst->zkhandle, zk_path, dep_service, &group_vector, added_group);
 	}
-	if(zk_path) free(zk_path);
-	if(added_group) free(added_group);
+	//if(zk_path) free(zk_path);
+	//if(added_group) free(added_group);
 
+	server_t* server = inst->server;
 	const String_vector* p_service = group_vector.count>0?&group_vector:dep_service;
 	for(int i = 0; i < server->num_worker; ++i){
 		worker_thread_t* worker = server->array_worker+i;
 		String_vector* strings = (String_vector*)calloc(1, sizeof(String_vector));
 		strings->count = p_service->count+1;
 		strings->data = (char**)calloc(strings->count, sizeof(char*));
-		strings->data[0] = strdup(cli->service);
+		strings->data[0] = strdup(dep->service_name);
 		for(int j = 0; j < p_service->count; ++j){
 			strings->data[j+1] = strdup(p_service->data[j]);
 		}
@@ -452,15 +469,41 @@ static void fn_get_zknode_children(int rc, const struct String_vector* strings, 
 
 
 	char** watcherCtx = (char**)data;
-	update_dep_service((server_t*)watcherCtx[0], (proto_client_t*)watcherCtx[1], strings);
+	update_dep_service((zk_inst_t*)watcherCtx[0], (dep_service_t*)watcherCtx[1], strings);
 }
 
-static int do_zk_dep_service(server_t* server, bool sync)
+static int do_zk_dep_service(zk_inst_t* inst, bool sync)
 {
-	if(NULL == server->zkhandle || server->num_worker <= 0){
+	server_t* server = inst->server;
+	if(NULL == inst->zkhandle || server->num_worker <= 0){
 		return 0;
 	}
 
+	list_head* p = NULL;
+	list_for_each(p, &inst->dep_list){
+		dep_service_t* dep = list_entry(p, dep_service_t, list);
+		if(sync){
+			String_vector dep_services;
+			memset(&dep_services, 0, sizeof(String_vector));
+			int rc = zoo_get_children(inst->zkhandle, dep->path, 0, &dep_services);
+			if(rc == ZOK){
+				update_dep_service(inst, dep, &dep_services);
+			}
+			deallocate_String_vector(&dep_services);
+		}else{
+			dep->watcherCtx[0] = (char*)inst;
+			dep->watcherCtx[1] = (char*)dep;
+			int rc = zoo_awget_children(inst->zkhandle, dep->path, fn_watch_zknode_children, dep->watcherCtx, fn_get_zknode_children, dep->watcherCtx);
+			if(rc != ZOK){
+				LOG_ERR("failed to awget children");
+			}
+		}
+	}
+
+	return 0;
+
+
+	/*
 	char* zk_path = NULL;
 	worker_thread_t* worker = server->array_worker;
 	list_head* dep = NULL;
@@ -504,16 +547,17 @@ static int do_zk_dep_service(server_t* server, bool sync)
 	}
 
 	return 0;
+	*/
 }
 
-static int sync_zk_dep_service(server_t* server)
+static int sync_zk_dep_service(zk_inst_t* inst)
 {
-	return do_zk_dep_service(server, 1);
+	return do_zk_dep_service(inst, 1);
 }
 
-static int async_zk_dep_service(server_t* server)
+static int async_zk_dep_service(zk_inst_t* inst)
 {
-	return do_zk_dep_service(server, 0);
+	return do_zk_dep_service(inst, 0);
 }
 
 bool should_connect_2_zk(server_t* server)
@@ -552,16 +596,16 @@ bool should_connect_2_zk(server_t* server)
 	return true;
 }
 
-static void connect_zk(server_t* server)
+static void connect_zk(zk_inst_t* inst)
 {
 	do{
-		server->zkhandle = zookeeper_init(g_zk_config_host, zk_state_watcher, 3000, 0, server, 0);
-		if(NULL != server->zkhandle){
+		inst->zkhandle = zookeeper_init(inst->host, zk_state_watcher, 3000, 0, inst, 0);
+		if(NULL != inst->zkhandle){
 			break;
 		}
 
 		sleep(1);
-	}while(NULL == server->zkhandle);
+	}while(NULL == inst->zkhandle);
 }
 
 static void zk_state_watcher(zhandle_t* zkhandle, int type, int state, const char* path, void* ctx)
@@ -572,42 +616,18 @@ static void zk_state_watcher(zhandle_t* zkhandle, int type, int state, const cha
 			LOG_INFO("zookeeper connected");
 			return;
 		}else if(state == ZOO_EXPIRED_SESSION_STATE){
-			server_t* server = (server_t*)ctx;
+			zk_inst_t* inst = (zk_inst_t*)ctx;
 
-			pthread_mutex_lock(&zk_mutex);
-			server->zkhandle = NULL;
+			pthread_mutex_lock(&inst->zk_mutex);
+			inst->zkhandle = NULL;
 			zookeeper_close(zkhandle);
-			connect_zk(server);
-			async_zk_dep_service(server);
-			pthread_mutex_unlock(&zk_mutex);
+			connect_zk(inst);
+			async_zk_dep_service(inst);
+			pthread_mutex_unlock(&inst->zk_mutex);
 		}
 	}
 }
 
-void* run_zk_thread(void* arg)
-{
-	server_t* server = (server_t*)arg;
-
-	connect_zk(server);
-	async_zk_dep_service(server);
-
-	//int i = 0;
-	while(!g_stop_zk_thread){
-		printf("run_zk_thread in thread:%ld\n", gettid());
-		pthread_mutex_lock(&zk_mutex);
-		if(server->zkhandle){
-			register_srv_to_zk(server, 1);
-			sync_zk_dep_service(server);
-			sync_config_from_zk(server);
-		}
-		pthread_mutex_unlock(&zk_mutex);
-		sleep(5);
-	}
-
-	LOG_INFO("unregister zk");
-	register_srv_to_zk(server, 0);
-	return NULL;
-}
 
 static void sync_connect_zk_watcher(zhandle_t* zkhandler, int type, int stat, const char* path, void* ctx)
 {
@@ -685,6 +705,7 @@ void sync_get_content_from_zk(const char* host, const char* path, char* buffer, 
 	zookeeper_close(zkhandle);
 }
 
+/*
 static char* get_first_line_content(char* content)
 {
 	char* p = content;
@@ -703,6 +724,7 @@ static char* get_first_line_content(char* content)
 	*end = 0;
 	return p;
 }
+*/
 
 bool compare_ip_port(const std::pair<char*, int>& p1, const std::pair<char*, int>& p2)
 {
@@ -776,3 +798,195 @@ void get_ip_port_from_zk(const char* url, std::vector<std::pair<char*, int> >& i
 	}
 }
 
+void init_zk(zk_t* zk)
+{
+	if(!zk){
+		return;
+	}
+
+	INIT_LIST_HEAD(&zk->zk_insts);
+}
+
+void release_zk(zk_t* zk)
+{
+	if(!zk || list_empty(&zk->zk_insts)){
+		return;
+	}
+
+	//TODO
+	list_head *p, *n;
+	list_for_each_safe(p, n, &zk->zk_insts){
+		zk_inst_t* inst = list_entry(p, zk_inst_t, list);
+		list_del(p);
+		free_zk_inst(inst);
+	}
+}
+
+static zk_inst_t* get_zk_inst_by_host(zk_t* zk, const char* host)
+{
+	list_head* p;
+	zk_inst_t* inst = NULL;
+	list_for_each(p, &zk->zk_insts){
+		inst = list_entry(p, zk_inst_t, list);
+		if(!strcmp(host, inst->host)){
+			return inst;
+		}
+	}
+
+	inst = (zk_inst_t*)calloc(1, sizeof(zk_inst_t));
+	if(!inst){
+		LOG_ERR("failed to calloc mem for zk inst");
+		return NULL;
+	}
+
+	inst->host = strdup(host);
+	INIT_LIST_HEAD(&inst->reg_list);
+	INIT_LIST_HEAD(&inst->dep_list);
+	INIT_LIST_HEAD(&inst->list);
+
+	list_add(&inst->list, &zk->zk_insts);
+	return inst;
+}
+
+int add_config_path_2_zk(zk_t* zk, const char* host, const char* config_path)
+{
+	if(!zk || !host || !config_path){
+		return -1;
+	}
+
+	zk_inst_t* inst = get_zk_inst_by_host(zk, host);
+	if(!inst){
+		return -2;
+	}
+
+	inst->config_path = strdup(config_path);
+	return 0;
+}
+
+int add_regist_path_2_zk(zk_t* zk, const char* url)
+{
+	if(!zk || !url){
+		return -1;
+	}
+
+	char* host =NULL;
+	char* path = NULL;
+	parse_zk_url(url, &host, &path, NULL);
+	if(!host || !path){
+		free(host);
+		free(path);
+		return 0;
+	}
+
+	regist_t* reg = (regist_t*)calloc(1, sizeof(regist_t));
+	INIT_LIST_HEAD(&reg->list);
+
+	zk_inst_t* inst = get_zk_inst_by_host(zk, host);
+	if(!inst){
+		free(host);
+		free(path);
+		free(reg);
+		return -4;
+	}
+
+	reg->path = path;
+	reg->group = strdup(get_server_env()->group);
+	list_add(&reg->list, &inst->reg_list);
+	return 0;
+}
+
+int add_dep_service_url_2_zk(zk_t* zk, const char* name, const char* url)
+{
+	if(!zk || !name || !url || !strlen(url)){
+		return -1;
+	}
+
+	char* host =NULL;
+	char* path = NULL;
+	char* added_group = NULL;
+	parse_zk_url(url, &host, &path, &added_group);
+	if(!host || !path){
+		free(host);
+		free(path);
+		free(added_group);
+		return 0;
+	}
+
+	dep_service_t* dep = (dep_service_t*)calloc(1, sizeof(dep_service_t));
+	if(!dep){
+		free(host);
+		free(path);
+		free(added_group);
+		return -3;
+	}
+
+	zk_inst_t* inst = get_zk_inst_by_host(zk, host);
+	if(!inst){
+		free(host);
+		free(path);
+		free(added_group);
+		free(dep);
+		return -4;
+	}
+	dep->path = path;
+	dep->added_group = added_group;
+	dep->service_name = strdup(name);
+	INIT_LIST_HEAD(&dep->list);
+	list_add(&dep->list, &inst->dep_list);
+	return 0;
+}
+
+static void* run_zk_thread(void* arg)
+{
+	zk_inst_t* inst = (zk_inst_t*)arg;
+	connect_zk(inst);
+	async_zk_dep_service(inst);
+
+	//int i = 0;
+	while(!g_stop_zk_thread){
+		printf("run_zk_thread in thread:%ld\n", gettid());
+		pthread_mutex_lock(&inst->zk_mutex);
+		if(inst->zkhandle){
+			register_srv_to_zk(inst, 1);
+			sync_zk_dep_service(inst);
+			sync_config_from_zk(inst);
+		}
+		pthread_mutex_unlock(&inst->zk_mutex);
+		sleep(5);
+	}
+
+	LOG_INFO("unregister zk");
+	register_srv_to_zk(inst, 0);
+	return NULL;
+}
+
+void run_zk_threads(server_t* server)
+{
+	if(list_empty(&server->zk.zk_insts)){
+		return;
+	}
+
+	list_head *p;
+	list_for_each(p, &server->zk.zk_insts){
+		zk_inst_t* inst = list_entry(p, zk_inst_t, list);
+		inst->server = server;
+		pthread_mutex_init(&inst->zk_mutex, NULL);
+		pthread_create(&inst->zk_thread, NULL, run_zk_thread, inst);
+	}
+}
+
+void stop_zk_threads(server_t* server)//sleep 10
+{
+	if(list_empty(&server->zk.zk_insts)){
+		return;
+	}
+	g_stop_zk_thread = 1;
+
+	list_head *p;
+	list_for_each(p, &server->zk.zk_insts){
+		zk_inst_t* inst = list_entry(p, zk_inst_t, list);
+		pthread_join(inst->zk_thread, NULL);
+	}
+
+	sleep(10);
+}

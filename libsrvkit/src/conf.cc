@@ -5,33 +5,24 @@ char* g_zk_config_path = NULL;
 //static char* g_zk_config_content = NULL;
 extern char* g_app_name;
 
-static json_object* read_conf_from_file(const char* cfg)
-{
-	if(NULL == cfg){
-		return NULL;
-	}
-
-	char* fcontent = read_file_content(cfg);
-	if(NULL == fcontent){
-		return NULL;
-	}
-
-	json_object* obj = json_tokener_parse(fcontent);
-	free(fcontent);
-	return obj;
-}
-
-static json_object* read_conf_from_zk(const char* url, char** config_host, char** config_path)
+static json_object* read_conf_from_zk(const char* url, zk_t* zk)//char** config_host, char** config_path)
 {
 	if(NULL == url){
 		return NULL;
 	}
 
-	parse_zk_url(url, config_host, config_path, NULL);
+	char* config_host = NULL;
+	char* config_path = NULL;
+	parse_zk_url(url, &config_host, &config_path, NULL);
 	char buffer[102400];
 	buffer[0] = 0;
 	int len = 102400;
-	sync_get_content_from_zk(*config_host, *config_path, buffer, &len);
+	sync_get_content_from_zk(config_host, config_path, buffer, &len);
+
+	add_config_path_2_zk(zk, config_host, config_path);
+	free(config_host);
+	free(config_path);
+
 	if(len == 0){
 		LOG_ERR("failed to get content from zookeeper\n");
 		return NULL;
@@ -48,39 +39,68 @@ static json_object* read_conf_from_zk(const char* url, char** config_host, char*
 
 	fprintf(fp, "%s", buffer);
 	fclose(fp);
-
-	/*
-	if(g_zk_config_content){
-		free(g_zk_config_content);
-		g_zk_config_content = NULL;
-	}
-
-	g_zk_config_content = strdup(buffer);
-	*/
 	return read_conf_from_file(sz_file);
 }
 
-json_object* load_cfg(const char* cfg)
+static json_object* load_json_cfg(zk_t* zk, const char* cfg)
 {
 	json_object* obj = read_conf_from_file(cfg);
 	if(NULL == obj){
 		return obj;
 	}
 
-	json_object* zk = NULL;
-	if(!json_object_object_get_ex(obj, "zk", &zk)){
+	json_object* obj_zk = NULL;
+	if(!json_object_object_get_ex(obj, "zk", &obj_zk)){
 		return obj;
 	}
 
-	json_object* zk_obj = read_conf_from_zk(json_object_get_string(zk), &g_zk_config_host, &g_zk_config_path);
+	json_object* cfg_obj = read_conf_from_zk(json_object_get_string(obj_zk), zk);
 	json_object_put(obj);
-	if(NULL == zk_obj){
+	if(NULL == cfg_obj){
 		LOG_ERR("invalid config from zookeeper");
 		return NULL;
 	}
 
-	return zk_obj;
+	return cfg_obj;
 }
+
+int load_cfg(server_t* server, const char* cfg)
+{
+	json_object* conf= load_json_cfg(&server->zk, cfg);
+	if(!conf){
+		return -1;
+	}
+
+	if(server->config){
+		json_object_put(server->config);
+	}
+	server->config = conf;
+	json_object_object_get_ex(server->config, "sys_conf", &server->sys_conf);
+	json_object_object_get_ex(server->config, "biz_conf", &server->biz_conf);
+	server->biz_conf_version = 1;
+	if(server->pb_config){
+		delete server->pb_config;
+	}
+	server->pb_config = new blink::pb_config;
+	int rt = util_parse_pb_from_json(server->pb_config, server->sys_conf);
+	if(rt){
+		printf("######failed to parse pb from json######\n");
+	}
+	printf("pb config:%s\n", server->pb_config->ShortDebugString().data());
+
+	for(int i = 0; i < server->pb_config->dep_service_size(); ++i){
+		const blink::pb_dep_service& dep_service = server->pb_config->dep_service(i);
+		add_dep_service_url_2_zk(&server->zk, dep_service.name().data(), dep_service.url().data());
+	}
+
+	for(int i = 0; i < server->pb_config->register_zks_size(); ++i){
+		add_regist_path_2_zk(&server->zk, server->pb_config->register_zks(i).data());
+	}
+
+	add_regist_path_2_zk(&server->zk, server->pb_config->register_zk().data());
+	return 0;
+}
+
 
 void get_worker_oldest_config(worker_thread_t* worker, cmd_get_oldest_biz_config_t* req)
 {

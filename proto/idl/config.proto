@@ -100,4 +100,5 @@ message pb_config
 	optional int32 trace = 15[default=0];
 	optional string lancer = 16;
 	optional string redis_4_test = 17;
+	repeated string register_zks = 18;
 };

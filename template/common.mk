@@ -1,4 +1,6 @@
 PROJECT_HOME=
+
+CODE_GEN=$(PROJECT_HOME)/quick-start-app/build/bin/codegen
 DEP_LIBS_HOME=$(PROJECT_HOME)/quick-start-app/dep_libs
 
 JSON_INCLUDE:=-I$(DEP_LIBS_HOME)/json/include/json-c

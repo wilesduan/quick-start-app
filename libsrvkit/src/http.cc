@@ -579,11 +579,12 @@ static void parse_url_path(http_request_t* request)
 	int i = 0;
 	const char* poilt = NULL;
 	const char* p = request->method.url;
+	const char* end_ptr = p + request->method.url_len;
 
 	json_object* header = get_swoole_body_head(request);
 
 loop:
-	while(p < p+request->method.url_len){
+	while(p < end_ptr){
 		if(*p != '/'){
 			poilt = p;
 			break;
@@ -591,7 +592,7 @@ loop:
 		++p;
 	}
 
-	while(p < p+request->method.url_len){
+	while(p < end_ptr){
 		if(*p == '/' || *p == '?' || *p == '#' || *p == ' '){
 			js[i++] = json_object_new_string_len(poilt, p - poilt);
 			poilt = NULL;
@@ -600,7 +601,7 @@ loop:
 		++p;
 	}
 
-	if(i < 3 && p < p+request->method.url_len){
+	if(i < 3 && p < end_ptr){
 		goto loop;
 	}
 

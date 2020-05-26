@@ -459,7 +459,7 @@ static int fn_upload_progress(void* data)
 
 static void dr_msg_cb (rd_kafka_t *rk,const rd_kafka_message_t *rkmessage, void *opaque)
 {
-	rd_kafka_opaque_t* op = (rd_kafka_opaque_t*)opaque;
+	rd_kafka_opaque_t* op = (rd_kafka_opaque_t*)rkmessage->_private;
 	if(op->sync){
 		op->ctx->co->sys_code = rkmessage->err;
 		notify_worker_dr_finished(op->ctx);

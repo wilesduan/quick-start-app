@@ -345,6 +345,7 @@ static void* pthread_kafka_consumer(void* arg)
 {
 	libsrvkit_kafka_consumer_t* consumer = (libsrvkit_kafka_consumer_t*)arg;
 	worker_thread_t dummy_worker;
+    memset(&dummy_worker, 0, sizeof(dummy_worker));
 	if(consumer->consume_progress_redis && connect_2_real_redis(&(dummy_worker.redis), consumer->consume_progress_redis)){
 		LOG_ERR("failed to connect to progress redis:%s", consumer->consume_progress_redis);
 	}
@@ -491,6 +492,7 @@ static void* pthread_kafka_producer(void* arg)
 	sleep(1);
 	libsrvkit_kafka_produecer_t* producer = (libsrvkit_kafka_produecer_t*)arg;
 	worker_thread_t dummy_worker;
+    memset(&dummy_worker, 0, sizeof(dummy_worker));
 	if(producer->produce_progress_redis&& connect_2_real_redis(&dummy_worker.redis, producer->produce_progress_redis)){
 		LOG_ERR("failed to connect to progress redis:%s", producer->produce_progress_redis);
 	}
